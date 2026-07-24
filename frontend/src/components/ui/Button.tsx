@@ -1,8 +1,14 @@
 import type { ButtonHTMLAttributes } from 'react'
+import { motion } from 'motion/react'
 
 type ButtonVariant = 'primary' | 'ghost'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type NativeButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'
+>
+
+interface ButtonProps extends NativeButtonProps {
   variant?: ButtonVariant
   isLoading?: boolean
 }
@@ -20,13 +26,17 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
+  const isDisabled = disabled || isLoading
+
   return (
-    <button
+    <motion.button
+      whileTap={isDisabled ? undefined : { scale: 0.97 }}
+      transition={{ duration: 0.1 }}
       className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 font-body text-sm font-medium transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${className}`}
-      disabled={disabled || isLoading}
+      disabled={isDisabled}
       {...props}
     >
       {isLoading ? 'Please wait…' : children}
-    </button>
+    </motion.button>
   )
 }

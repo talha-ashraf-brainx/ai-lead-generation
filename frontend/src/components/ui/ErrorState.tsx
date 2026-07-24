@@ -1,3 +1,5 @@
+import { motion } from 'motion/react'
+import { fadeIn } from '../../lib/motion'
 import { Button } from './Button'
 import { IconAlertTriangle } from './icons'
 
@@ -9,7 +11,10 @@ interface ErrorStateProps {
 
 export function ErrorState({ title = 'Something went wrong', description, onRetry }: ErrorStateProps) {
   return (
-    <div
+    <motion.div
+      variants={fadeIn}
+      initial="hidden"
+      animate="visible"
       role="alert"
       className="flex flex-col items-center justify-center gap-3 rounded-lg border border-temp-hot/30 bg-temp-hot/5 px-6 py-16 text-center"
     >
@@ -21,6 +26,6 @@ export function ErrorState({ title = 'Something went wrong', description, onRetr
           Try again
         </Button>
       )}
-    </div>
+    </motion.div>
   )
 }

@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '../../hooks/useAuth'
 import { useClickOutside } from '../../hooks/useClickOutside'
+import { popIn } from '../../lib/motion'
 import { Button } from '../ui/Button'
 import { IconBell, IconChevronDown, IconLogout, IconMenu } from '../ui/icons'
 
@@ -60,14 +62,23 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           >
             <IconBell className="h-5 w-5" />
           </button>
-          {notifOpen && (
-            <div className="absolute top-full right-0 mt-2 w-72 rounded-md border border-graphite-700 bg-graphite-900 p-4 shadow-xl">
-              <p className="font-display text-sm font-medium text-fog-50">Notifications</p>
-              <p className="mt-2 text-sm text-slate-400">
-                No new replies yet. Reply alerts arrive here once outreach is live.
-              </p>
-            </div>
-          )}
+          <AnimatePresence>
+            {notifOpen && (
+              <motion.div
+                variants={popIn}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                style={{ transformOrigin: 'top right' }}
+                className="absolute top-full right-0 mt-2 w-72 rounded-md border border-graphite-700 bg-graphite-900 p-4 shadow-xl"
+              >
+                <p className="font-display text-sm font-medium text-fog-50">Notifications</p>
+                <p className="mt-2 text-sm text-slate-400">
+                  No new replies yet. Reply alerts arrive here once outreach is live.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="relative" ref={menuRef}>
@@ -81,23 +92,32 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
             <span className="hidden text-sm text-fog-100 sm:inline">{user?.name}</span>
             <IconChevronDown className="h-3.5 w-3.5 text-slate-500" />
           </button>
-          {menuOpen && (
-            <div className="absolute top-full right-0 mt-2 w-56 rounded-md border border-graphite-700 bg-graphite-900 p-2 shadow-xl">
-              <div className="px-2 py-1.5">
-                <p className="text-sm text-fog-100">{user?.name}</p>
-                <p className="text-xs text-slate-500">{user?.email}</p>
-              </div>
-              <div className="my-1 h-px bg-graphite-700" />
-              <Button
-                variant="ghost"
-                onClick={logout}
-                className="w-full justify-start border-none px-2 py-1.5 text-slate-300 hover:bg-graphite-800 hover:text-fog-100"
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                variants={popIn}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                style={{ transformOrigin: 'top right' }}
+                className="absolute top-full right-0 mt-2 w-56 rounded-md border border-graphite-700 bg-graphite-900 p-2 shadow-xl"
               >
-                <IconLogout className="h-4 w-4" />
-                Sign out
-              </Button>
-            </div>
-          )}
+                <div className="px-2 py-1.5">
+                  <p className="text-sm text-fog-100">{user?.name}</p>
+                  <p className="text-xs text-slate-500">{user?.email}</p>
+                </div>
+                <div className="my-1 h-px bg-graphite-700" />
+                <Button
+                  variant="ghost"
+                  onClick={logout}
+                  className="w-full justify-start border-none px-2 py-1.5 text-slate-300 hover:bg-graphite-800 hover:text-fog-100"
+                >
+                  <IconLogout className="h-4 w-4" />
+                  Sign out
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </header>

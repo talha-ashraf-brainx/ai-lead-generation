@@ -23,7 +23,7 @@ export function CsvPreviewTable({ preview }: { preview: CsvPreview }) {
         {invalidCount > 0 && <span className="text-temp-hot">{invalidCount} invalid</span>}
       </div>
 
-      <div className="max-h-80 overflow-auto rounded-lg border border-graphite-700">
+      <div className="max-h-80 overflow-auto rounded-lg bg-graphite-950/30">
         <table className="w-full min-w-[600px] text-left text-sm">
           <thead className="sticky top-0 bg-graphite-800 font-mono text-xs text-slate-400 uppercase">
             <tr>

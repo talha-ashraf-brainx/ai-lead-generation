@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import { CsvDropzone } from '../../components/leads/CsvDropzone'
 import { CsvPreviewTable } from '../../components/leads/CsvPreviewTable'
 import { ImportSummaryCard } from '../../components/leads/ImportSummaryCard'
 import { KeywordSearchForm } from '../../components/leads/KeywordSearchForm'
 import { Button } from '../../components/ui/Button'
 import { ErrorState } from '../../components/ui/ErrorState'
+import { fadeIn } from '../../lib/motion'
 import { IconChevronLeft, IconFileText, IconSearch, IconSpinner } from '../../components/ui/icons'
 import { importCsvRows, previewLeadsCsv, searchLeads } from '../../lib/mock/leads'
 import type { CsvPreview, ImportSummary } from '../../types/lead'
@@ -72,6 +74,10 @@ export function LeadImportPage() {
 
   const validRowCount = csvPreview?.rows.filter((row) => row.isValid).length ?? 0
 
+  const csvViewKey = csvSummary ? 'csv-summary' : csvError ? 'csv-error' : csvPreview ? 'csv-preview' : csvBusy ? 'csv-busy' : 'csv-idle'
+  const searchViewKey = searchSummary ? 'search-summary' : 'search-form'
+  const viewKey = tab === 'csv' ? csvViewKey : searchViewKey
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <Link
@@ -110,54 +116,59 @@ export function LeadImportPage() {
         </button>
       </div>
 
-      <div className="rounded-lg border border-graphite-700 bg-graphite-900 p-6">
-        {tab === 'csv' ? (
-          csvSummary ? (
-            <ImportSummaryCard summary={csvSummary} note="From CSV upload" onReset={resetCsv} />
-          ) : csvError ? (
-            <ErrorState description={csvError} onRetry={resetCsv} />
-          ) : csvPreview ? (
-            <div className="flex flex-col gap-4">
-              <CsvPreviewTable preview={csvPreview} />
-              <div className="flex gap-3">
-                <Button variant="ghost" onClick={resetCsv} disabled={csvBusy}>
-                  Choose different file
-                </Button>
-                <Button onClick={handleConfirmImport} isLoading={csvBusy} disabled={validRowCount === 0}>
-                  Import {validRowCount} row{validRowCount === 1 ? '' : 's'}
-                </Button>
-              </div>
-            </div>
-          ) : csvBusy ? (
-            <div className="flex flex-col items-center gap-3 py-14 text-slate-400">
-              <IconSpinner className="h-6 w-6 animate-spin" />
-              <p className="text-sm">Reading file…</p>
-            </div>
-          ) : (
-            <CsvDropzone onFileSelected={handleFileSelected} />
-          )
-        ) : searchSummary ? (
-          <ImportSummaryCard
-            summary={searchSummary}
-            note={
-              lastQuery
-                ? `"${lastQuery.niche} in ${lastQuery.location}" — enrichment is running in the background`
-                : undefined
-            }
-            onReset={resetSearch}
-          />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <KeywordSearchForm onSearch={handleSearch} isSearching={isSearching} />
-            {isSearching && (
-              <div className="flex items-center gap-2 rounded-md border border-graphite-700 bg-graphite-800 px-3 py-2.5 text-sm text-slate-400">
-                <IconSpinner className="h-4 w-4 animate-spin text-primary" />
-                Scraping directories for {lastQuery?.niche} in {lastQuery?.location}… this can take
-                a few seconds. Feel free to keep navigating — we'll finish in the background.
+      <div className="overflow-hidden rounded-lg border border-graphite-700 bg-graphite-900 p-6">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={viewKey} variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+            {tab === 'csv' ? (
+              csvSummary ? (
+                <ImportSummaryCard summary={csvSummary} note="From CSV upload" onReset={resetCsv} />
+              ) : csvError ? (
+                <ErrorState description={csvError} onRetry={resetCsv} />
+              ) : csvPreview ? (
+                <div className="flex flex-col gap-4">
+                  <CsvPreviewTable preview={csvPreview} />
+                  <div className="flex gap-3">
+                    <Button variant="ghost" onClick={resetCsv} disabled={csvBusy}>
+                      Choose different file
+                    </Button>
+                    <Button onClick={handleConfirmImport} isLoading={csvBusy} disabled={validRowCount === 0}>
+                      Import {validRowCount} row{validRowCount === 1 ? '' : 's'}
+                    </Button>
+                  </div>
+                </div>
+              ) : csvBusy ? (
+                <div className="flex flex-col items-center gap-3 py-14 text-slate-400">
+                  <IconSpinner className="h-6 w-6 animate-spin" />
+                  <p className="text-sm">Reading file…</p>
+                </div>
+              ) : (
+                <CsvDropzone onFileSelected={handleFileSelected} />
+              )
+            ) : searchSummary ? (
+              <ImportSummaryCard
+                summary={searchSummary}
+                note={
+                  lastQuery
+                    ? `"${lastQuery.niche} in ${lastQuery.location}" — enrichment is running in the background`
+                    : undefined
+                }
+                onReset={resetSearch}
+              />
+            ) : (
+              <div className="flex flex-col gap-4">
+                <KeywordSearchForm onSearch={handleSearch} isSearching={isSearching} />
+                {isSearching && (
+                  <div className="flex items-center gap-2 rounded-md border border-graphite-700 bg-graphite-800 px-3 py-2.5 text-sm text-slate-400">
+                    <IconSpinner className="h-4 w-4 animate-spin text-primary" />
+                    Scraping directories for {lastQuery?.niche} in {lastQuery?.location}… this can
+                    take a few seconds. Feel free to keep navigating — we'll finish in the
+                    background.
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   )

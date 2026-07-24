@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { motion } from 'motion/react'
 import { useAuth } from '../hooks/useAuth'
+import { useCountUp } from '../hooks/useCountUp'
 import { Button } from '../components/ui/Button'
 import { TextField } from '../components/ui/TextField'
 import { DEMO_CREDENTIALS } from '../lib/mock/auth'
@@ -13,6 +15,47 @@ const TEMPERATURE_STAGES = [
   { label: 'Replied', count: 3, color: 'var(--color-temp-warm)' },
   { label: 'Converted', count: 1, color: 'var(--color-temp-hot)' },
 ]
+
+const STAGE_REVEAL_DELAY_MS = 550
+const STAGE_STAGGER_MS = 160
+const STAGE_DURATION_MS = 700
+
+function TemperatureBarSegment({ color, delayMs }: { color: string; delayMs: number }) {
+  return (
+    <div className="h-full flex-1 overflow-hidden">
+      <motion.div
+        className="h-full w-full"
+        style={{ background: color, transformOrigin: 'left' }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: STAGE_DURATION_MS / 1000, delay: delayMs / 1000, ease: [0.16, 1, 0.3, 1] }}
+      />
+    </div>
+  )
+}
+
+function TemperatureStat({
+  label,
+  count,
+  delayMs,
+}: {
+  label: string
+  count: number
+  delayMs: number
+}) {
+  const value = useCountUp(count, STAGE_DURATION_MS, delayMs)
+  return (
+    <motion.div
+      className="flex flex-col gap-1"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3, delay: delayMs / 1000 }}
+    >
+      <span className="font-mono text-lg text-fog-50">{value}</span>
+      <span className="text-xs text-slate-500">{label}</span>
+    </motion.div>
+  )
+}
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -43,7 +86,7 @@ export function LoginPage() {
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-graphite-950 p-12 lg:flex">
         <div
-          className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full opacity-20 blur-3xl"
+          className="signal-glow pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full blur-3xl"
           style={{ background: 'radial-gradient(circle, var(--color-temp-hot), transparent 70%)' }}
         />
 
@@ -52,29 +95,50 @@ export function LoginPage() {
         </span>
 
         <div className="relative flex flex-col gap-8">
-          <p className="font-mono text-xs tracking-[0.2em] text-slate-400 uppercase">
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="font-mono text-xs tracking-[0.2em] text-slate-400 uppercase"
+          >
             Outreach console
-          </p>
-          <h1 className="max-w-md font-display text-4xl leading-tight font-medium text-fog-50">
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-md font-display text-4xl leading-tight font-medium text-fog-50"
+          >
             Watch cold turn into conversion.
-          </h1>
-          <p className="max-w-sm text-sm leading-relaxed text-slate-400">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-sm text-sm leading-relaxed text-slate-400"
+          >
             Emberline tracks every lead from first send to signed deal, so you always know who's
             warming up.
-          </p>
+          </motion.p>
 
           <div className="mt-4">
-            <div className="flex h-2 w-full overflow-hidden rounded-full">
-              {TEMPERATURE_STAGES.map((stage) => (
-                <div key={stage.label} className="flex-1" style={{ background: stage.color }} />
+            <div className="flex h-2 w-full gap-px overflow-hidden rounded-full bg-graphite-800">
+              {TEMPERATURE_STAGES.map((stage, index) => (
+                <TemperatureBarSegment
+                  key={stage.label}
+                  color={stage.color}
+                  delayMs={STAGE_REVEAL_DELAY_MS + index * STAGE_STAGGER_MS}
+                />
               ))}
             </div>
             <div className="mt-3 grid grid-cols-4 gap-2">
-              {TEMPERATURE_STAGES.map((stage) => (
-                <div key={stage.label} className="flex flex-col gap-1">
-                  <span className="font-mono text-lg text-fog-50">{stage.count}</span>
-                  <span className="text-xs text-slate-500">{stage.label}</span>
-                </div>
+              {TEMPERATURE_STAGES.map((stage, index) => (
+                <TemperatureStat
+                  key={stage.label}
+                  label={stage.label}
+                  count={stage.count}
+                  delayMs={STAGE_REVEAL_DELAY_MS + index * STAGE_STAGGER_MS}
+                />
               ))}
             </div>
           </div>
@@ -86,7 +150,12 @@ export function LoginPage() {
       </div>
 
       <div className="flex items-center justify-center bg-graphite-900 p-8">
-        <div className="w-full max-w-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm"
+        >
           <span className="mb-8 block font-display text-xl font-semibold text-fog-50 lg:hidden">
             Emberline
           </span>
@@ -135,7 +204,7 @@ export function LoginPage() {
               Sign in
             </Button>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   )

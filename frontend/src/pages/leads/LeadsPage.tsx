@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import { BulkActionsBar } from '../../components/leads/BulkActionsBar'
 import { LeadDetailDrawer } from '../../components/leads/LeadDetailDrawer'
 import { LeadFilters } from '../../components/leads/LeadFilters'
@@ -8,6 +9,7 @@ import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Pagination } from '../../components/ui/Pagination'
+import { fadeSlideUp } from '../../lib/motion'
 import { IconLeads, IconUpload } from '../../components/ui/icons'
 import {
   DEFAULT_LEAD_FILTERS,
@@ -169,15 +171,24 @@ export function LeadsPage() {
 
       <LeadFilters value={filters} industries={industries} onChange={setFilters} />
 
-      {selectedIds.size > 0 && (
-        <BulkActionsBar
-          selectedCount={selectedIds.size}
-          isBusy={isBulkBusy}
-          onAddToCampaign={handleAddToCampaign}
-          onDelete={handleBulkDelete}
-          onClear={() => setSelectedIds(new Set())}
-        />
-      )}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            variants={fadeSlideUp}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <BulkActionsBar
+              selectedCount={selectedIds.size}
+              isBusy={isBulkBusy}
+              onAddToCampaign={handleAddToCampaign}
+              onDelete={handleBulkDelete}
+              onClear={() => setSelectedIds(new Set())}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {error ? (
         <ErrorState description={error} onRetry={() => setRefreshTick((tick) => tick + 1)} />

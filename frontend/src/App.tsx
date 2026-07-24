@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { MotionConfig } from 'motion/react'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { AppLayout } from './components/layout/AppLayout'
@@ -12,29 +13,31 @@ import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/leads" element={<LeadsPage />} />
-            <Route path="/leads/import" element={<LeadImportPage />} />
-            <Route path="/campaigns" element={<CampaignsPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
-          <Route path="/" element={<Navigate to="/leads" replace />} />
-          <Route path="*" element={<Navigate to="/leads" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/leads" element={<LeadsPage />} />
+              <Route path="/leads/import" element={<LeadImportPage />} />
+              <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="/" element={<Navigate to="/leads" replace />} />
+            <Route path="*" element={<Navigate to="/leads" replace />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </MotionConfig>
   )
 }
 

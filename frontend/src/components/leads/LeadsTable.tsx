@@ -1,4 +1,6 @@
+import { AnimatePresence, motion } from 'motion/react'
 import type { Lead } from '../../types/lead'
+import { fadeIn, staggerContainer, staggerRow } from '../../lib/motion'
 import { Checkbox } from '../ui/Checkbox'
 import { EnrichmentBadge, StatusBadge } from '../ui/StatusBadge'
 import { TableRowSkeleton } from '../ui/Skeleton'
@@ -49,14 +51,33 @@ export function LeadsTable({
             <th className="px-4 py-3 font-medium">Enrichment</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-graphite-700">
-          {isLoading
-            ? Array.from({ length: skeletonRowCount }, (_, i) => (
+        <AnimatePresence mode="wait" initial={false}>
+          {isLoading ? (
+            <motion.tbody
+              key="skeleton"
+              variants={fadeIn}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="divide-y divide-graphite-700"
+            >
+              {Array.from({ length: skeletonRowCount }, (_, i) => (
                 <TableRowSkeleton key={i} columns={COLUMN_COUNT} />
-              ))
-            : leads.map((lead) => (
-                <tr
+              ))}
+            </motion.tbody>
+          ) : (
+            <motion.tbody
+              key="content"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="divide-y divide-graphite-700"
+            >
+              {leads.map((lead) => (
+                <motion.tr
                   key={lead.id}
+                  variants={staggerRow}
                   onClick={() => onOpenLead(lead.id)}
                   className={`cursor-pointer transition-colors hover:bg-graphite-800/60 ${
                     selectedIds.has(lead.id) ? 'bg-primary/5' : ''
@@ -97,9 +118,11 @@ export function LeadsTable({
                   <td className="px-4 py-3">
                     <EnrichmentBadge status={lead.enrichment} />
                   </td>
-                </tr>
+                </motion.tr>
               ))}
-        </tbody>
+            </motion.tbody>
+          )}
+        </AnimatePresence>
       </table>
     </div>
   )

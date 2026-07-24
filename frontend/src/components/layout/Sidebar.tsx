@@ -18,12 +18,12 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
     <>
       <div
         onClick={onCloseMobile}
-        className={`fixed inset-0 z-30 bg-graphite-950/60 transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-30 bg-graphite-950/60 transition-opacity duration-[220ms] ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden ${
           mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-graphite-700 bg-graphite-900 transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-graphite-700 bg-graphite-900 transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] lg:static lg:z-auto lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
