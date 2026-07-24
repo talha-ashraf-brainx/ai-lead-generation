@@ -1,0 +1,234 @@
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { BulkActionsBar } from '../../components/leads/BulkActionsBar'
+import { LeadDetailDrawer } from '../../components/leads/LeadDetailDrawer'
+import { LeadFilters } from '../../components/leads/LeadFilters'
+import { LeadsTable } from '../../components/leads/LeadsTable'
+import { Button } from '../../components/ui/Button'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { Pagination } from '../../components/ui/Pagination'
+import { IconLeads, IconUpload } from '../../components/ui/icons'
+import {
+  DEFAULT_LEAD_FILTERS,
+  bulkAddToCampaign,
+  bulkDeleteLeads,
+  fetchLeads,
+  listIndustries,
+  subscribeToLeads,
+} from '../../lib/mock/leads'
+import type { Lead, LeadFiltersState } from '../../types/lead'
+
+const PAGE_SIZE = 12
+
+export function LeadsPage() {
+  const [filters, setFilters] = useState<LeadFiltersState>(DEFAULT_LEAD_FILTERS)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [total, setTotal] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [openLeadId, setOpenLeadId] = useState<string | null>(null)
+  const [isBulkBusy, setIsBulkBusy] = useState(false)
+  const [industries, setIndustries] = useState<string[]>([])
+
+  // Background enrichment can fire many store updates in quick succession (one per
+  // lead). Those refreshes should patch data in place, not thrash isLoading — so they're
+  // debounced and flagged here to skip the loading-state flip in the fetch effect below.
+  const isBackgroundRefresh = useRef(false)
+  const backgroundRefreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(filters.search), 300)
+    return () => clearTimeout(timeout)
+  }, [filters.search])
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch, filters.status, filters.industry, filters.campaignId])
+
+  useEffect(() => {
+    const unsubscribe = subscribeToLeads(() => {
+      if (backgroundRefreshTimeout.current) clearTimeout(backgroundRefreshTimeout.current)
+      backgroundRefreshTimeout.current = setTimeout(() => {
+        isBackgroundRefresh.current = true
+        setRefreshTick((tick) => tick + 1)
+      }, 400)
+    })
+    return () => {
+      unsubscribe()
+      if (backgroundRefreshTimeout.current) clearTimeout(backgroundRefreshTimeout.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const isBackground = isBackgroundRefresh.current
+    isBackgroundRefresh.current = false
+
+    if (!isBackground) {
+      setIsLoading(true)
+      setError(null)
+    }
+
+    fetchLeads({
+      page,
+      pageSize: PAGE_SIZE,
+      search: debouncedSearch,
+      status: filters.status,
+      industry: filters.industry,
+      campaignId: filters.campaignId,
+    })
+      .then((result) => {
+        if (cancelled) return
+        setLeads(result.rows)
+        setTotal(result.total)
+        setIndustries(listIndustries())
+      })
+      .catch(() => {
+        if (!cancelled && !isBackground) setError('Could not load leads. Please try again.')
+      })
+      .finally(() => {
+        if (!cancelled && !isBackground) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [page, debouncedSearch, filters.status, filters.industry, filters.campaignId, refreshTick])
+
+  function toggleRow(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelectedIds((current) => {
+      const allSelected = leads.length > 0 && leads.every((lead) => current.has(lead.id))
+      if (allSelected) {
+        const next = new Set(current)
+        leads.forEach((lead) => next.delete(lead.id))
+        return next
+      }
+      const next = new Set(current)
+      leads.forEach((lead) => next.add(lead.id))
+      return next
+    })
+  }
+
+  async function handleAddToCampaign(campaignId: string) {
+    setIsBulkBusy(true)
+    try {
+      await bulkAddToCampaign(Array.from(selectedIds), campaignId)
+      setSelectedIds(new Set())
+    } finally {
+      setIsBulkBusy(false)
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!confirm(`Delete ${selectedIds.size} lead${selectedIds.size === 1 ? '' : 's'}? This can't be undone.`)) {
+      return
+    }
+    setIsBulkBusy(true)
+    try {
+      await bulkDeleteLeads(Array.from(selectedIds))
+      setSelectedIds(new Set())
+    } finally {
+      setIsBulkBusy(false)
+    }
+  }
+
+  const hasAnyLeadsAtAll = total > 0 || isLoading || Boolean(debouncedSearch) || filters.status !== 'all'
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-medium text-fog-50">Leads</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            {isLoading && total === 0 ? 'Loading leads…' : `${total} total leads in the pipeline`}
+          </p>
+        </div>
+        <Link to="/leads/import">
+          <Button className="gap-2">
+            <IconUpload className="h-4 w-4" />
+            Import leads
+          </Button>
+        </Link>
+      </div>
+
+      <LeadFilters value={filters} industries={industries} onChange={setFilters} />
+
+      {selectedIds.size > 0 && (
+        <BulkActionsBar
+          selectedCount={selectedIds.size}
+          isBusy={isBulkBusy}
+          onAddToCampaign={handleAddToCampaign}
+          onDelete={handleBulkDelete}
+          onClear={() => setSelectedIds(new Set())}
+        />
+      )}
+
+      {error ? (
+        <ErrorState description={error} onRetry={() => setRefreshTick((tick) => tick + 1)} />
+      ) : !isLoading && leads.length === 0 ? (
+        hasAnyLeadsAtAll ? (
+          <EmptyState
+            title="No leads match these filters"
+            description="Try clearing filters or searching a different term."
+            action={
+              <Button variant="ghost" onClick={() => setFilters(DEFAULT_LEAD_FILTERS)}>
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<IconLeads className="h-8 w-8" />}
+            title="No leads yet"
+            description="Import a CSV or search a niche and location to source your first leads."
+            action={
+              <Link to="/leads/import">
+                <Button className="gap-2">
+                  <IconUpload className="h-4 w-4" />
+                  Import leads
+                </Button>
+              </Link>
+            }
+          />
+        )
+      ) : (
+        <div className="flex flex-col rounded-lg border border-graphite-700 overflow-hidden">
+          <LeadsTable
+            leads={leads}
+            isLoading={isLoading}
+            skeletonRowCount={PAGE_SIZE}
+            selectedIds={selectedIds}
+            onToggleRow={toggleRow}
+            onToggleAll={toggleAll}
+            onOpenLead={setOpenLeadId}
+          />
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            isLoading={isLoading}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+
+      <LeadDetailDrawer leadId={openLeadId} onClose={() => setOpenLeadId(null)} />
+    </div>
+  )
+}

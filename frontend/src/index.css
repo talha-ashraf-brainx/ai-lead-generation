@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-600.css';
+@import '@fontsource/space-grotesk/latin-700.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+
+@theme {
+  /* Graphite — instrument-panel base */
+  --color-graphite-950: #10131a;
+  --color-graphite-900: #171b24;
+  --color-graphite-800: #1e232e;
+  --color-graphite-700: #2a303d;
+  --color-graphite-600: #3a4150;
+
+  /* Fog — light neutral surface */
+  --color-fog-50: #f6f7f9;
+  --color-fog-100: #ecedf1;
+  --color-fog-200: #dde0e6;
+
+  /* Text */
+  --color-ink: #0d0f13;
+  --color-slate-400: #8890a0;
+  --color-slate-500: #6b7383;
+  --color-slate-600: #565e6d;
+
+  /* Signal Temperature — the lead-engagement scale (contacted -> converted).
+     Reserved for status meaning only; not used as decorative/UI chrome. */
+  --color-temp-cold: #3e6fd9;
+  --color-temp-cool: #8b6fd9;
+  --color-temp-warm: #e08a3c;
+  --color-temp-hot: #ff5a36;
+
+  /* Primary interactive accent (shares hue with temp-cold: every lead starts here) */
+  --color-primary: #3e6fd9;
+  --color-primary-hover: #5583e8;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    background: var(--color-graphite-950);
+    color: var(--color-fog-100);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  }
+}
