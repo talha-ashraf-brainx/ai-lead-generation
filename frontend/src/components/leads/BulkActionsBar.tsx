@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { CAMPAIGN_OPTIONS } from '../../lib/mock/leads'
+import { listCampaignOptions } from '../../lib/mock/leads'
 import { Button } from '../ui/Button'
 import { Select } from '../ui/Select'
-import { IconTrash, IconX } from '../ui/icons'
+import { IconMail, IconTrash, IconX } from '../ui/icons'
 
 interface BulkActionsBarProps {
   selectedCount: number
   isBusy: boolean
-  onAddToCampaign: (campaignId: string) => void
+  onAddToCampaign: (campaignId: string, campaignName: string) => void
+  onGenerateEmails: () => void
   onDelete: () => void
   onClear: () => void
 }
@@ -16,10 +17,13 @@ export function BulkActionsBar({
   selectedCount,
   isBusy,
   onAddToCampaign,
+  onGenerateEmails,
   onDelete,
   onClear,
 }: BulkActionsBarProps) {
-  const [campaignId, setCampaignId] = useState(CAMPAIGN_OPTIONS[0]?.id ?? '')
+  const campaignOptions = listCampaignOptions()
+  const [campaignId, setCampaignId] = useState(campaignOptions[0]?.id ?? '')
+  const selectedCampaign = campaignOptions.find((option) => option.id === campaignId)
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-md border border-primary/30 bg-primary/10 px-4 py-2.5">
@@ -28,7 +32,7 @@ export function BulkActionsBar({
       <div className="flex items-center gap-2">
         <div className="w-48">
           <Select value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>
-            {CAMPAIGN_OPTIONS.map((campaign) => (
+            {campaignOptions.map((campaign) => (
               <option key={campaign.id} value={campaign.id}>
                 {campaign.name}
               </option>
@@ -37,12 +41,17 @@ export function BulkActionsBar({
         </div>
         <Button
           variant="ghost"
-          onClick={() => onAddToCampaign(campaignId)}
+          onClick={() => selectedCampaign && onAddToCampaign(campaignId, selectedCampaign.name)}
           disabled={isBusy || !campaignId}
         >
           Add to campaign
         </Button>
       </div>
+
+      <Button variant="ghost" onClick={onGenerateEmails} disabled={isBusy} className="gap-1.5">
+        <IconMail className="h-4 w-4" />
+        Generate emails
+      </Button>
 
       <Button
         variant="ghost"

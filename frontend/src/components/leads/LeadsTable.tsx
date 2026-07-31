@@ -9,6 +9,7 @@ import { IconExternalLink } from '../ui/icons'
 interface LeadsTableProps {
   leads: Lead[]
   isLoading: boolean
+  isRefetching?: boolean
   skeletonRowCount: number
   selectedIds: Set<string>
   onToggleRow: (id: string) => void
@@ -21,6 +22,7 @@ const COLUMN_COUNT = 7
 export function LeadsTable({
   leads,
   isLoading,
+  isRefetching = false,
   skeletonRowCount,
   selectedIds,
   onToggleRow,
@@ -72,12 +74,16 @@ export function LeadsTable({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="divide-y divide-graphite-700"
+              className={`divide-y divide-graphite-700 transition-opacity duration-300 ${
+                isRefetching ? 'pointer-events-none opacity-40' : 'opacity-100'
+              }`}
             >
               {leads.map((lead) => (
                 <motion.tr
                   key={lead.id}
+                  layout="position"
                   variants={staggerRow}
+                  transition={{ layout: { duration: 0.25, ease: [0.16, 1, 0.3, 1] } }}
                   onClick={() => onOpenLead(lead.id)}
                   className={`cursor-pointer transition-colors hover:bg-graphite-800/60 ${
                     selectedIds.has(lead.id) ? 'bg-primary/5' : ''

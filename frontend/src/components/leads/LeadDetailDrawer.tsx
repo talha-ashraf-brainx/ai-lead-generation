@@ -1,29 +1,39 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Lead } from '../../types/lead'
+import type { EmailDraft } from '../../types/email'
 import { fetchLead } from '../../lib/mock/leads'
+import { fetchEmailDraft } from '../../lib/mock/emailDrafts'
 import { Drawer } from '../ui/Drawer'
+import { Button } from '../ui/Button'
 import { Skeleton } from '../ui/Skeleton'
-import { EnrichmentBadge, StatusBadge } from '../ui/StatusBadge'
-import { IconExternalLink } from '../ui/icons'
+import { EmailDraftBadge, EnrichmentBadge, StatusBadge } from '../ui/StatusBadge'
+import { IconExternalLink, IconMail } from '../ui/icons'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; onClose: () => void }) {
+  const navigate = useNavigate()
   const [lead, setLead] = useState<Lead | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [emailDraft, setEmailDraft] = useState<EmailDraft | null>(null)
 
   useEffect(() => {
     if (!leadId) return
     let cancelled = false
     setIsLoading(true)
     setLead(null)
+    setEmailDraft(null)
     fetchLead(leadId).then((result) => {
       if (!cancelled) {
         setLead(result ?? null)
         setIsLoading(false)
       }
+    })
+    fetchEmailDraft(leadId).then((result) => {
+      if (!cancelled) setEmailDraft(result ?? null)
     })
     return () => {
       cancelled = true
@@ -79,6 +89,21 @@ export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; o
               </p>
             </div>
           )}
+
+          <div className="flex items-center justify-between gap-3 rounded-md border border-graphite-700 bg-graphite-800 px-3 py-3">
+            <div>
+              <p className="font-mono text-xs tracking-wide text-slate-400 uppercase">Outreach email</p>
+              {emailDraft && <div className="mt-1.5"><EmailDraftBadge status={emailDraft.status} /></div>}
+            </div>
+            <Button
+              variant="ghost"
+              className="gap-1.5"
+              onClick={() => navigate(`/leads/${leadId}/email`)}
+            >
+              <IconMail className="h-4 w-4" />
+              {emailDraft ? 'Review email' : 'Generate email'}
+            </Button>
+          </div>
 
           <div className="rounded-md border border-dashed border-graphite-600 px-3 py-3 text-xs text-slate-500">
             Full send/open/reply activity timeline arrives with the Lead Tracker in Phase 7.

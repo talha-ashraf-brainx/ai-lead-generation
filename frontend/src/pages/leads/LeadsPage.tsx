@@ -19,6 +19,7 @@ import {
   listIndustries,
   subscribeToLeads,
 } from '../../lib/mock/leads'
+import { bulkGenerateEmails } from '../../lib/mock/emailDrafts'
 import type { Lead, LeadFiltersState } from '../../types/lead'
 
 const PAGE_SIZE = 12
@@ -31,6 +32,7 @@ export function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
 
@@ -91,6 +93,7 @@ export function LeadsPage() {
         setLeads(result.rows)
         setTotal(result.total)
         setIndustries(listIndustries())
+        setHasLoadedOnce(true)
       })
       .catch(() => {
         if (!cancelled && !isBackground) setError('Could not load leads. Please try again.')
@@ -127,10 +130,20 @@ export function LeadsPage() {
     })
   }
 
-  async function handleAddToCampaign(campaignId: string) {
+  async function handleAddToCampaign(campaignId: string, campaignName: string) {
     setIsBulkBusy(true)
     try {
-      await bulkAddToCampaign(Array.from(selectedIds), campaignId)
+      await bulkAddToCampaign(Array.from(selectedIds), campaignId, campaignName)
+      setSelectedIds(new Set())
+    } finally {
+      setIsBulkBusy(false)
+    }
+  }
+
+  async function handleGenerateEmails() {
+    setIsBulkBusy(true)
+    try {
+      await bulkGenerateEmails(Array.from(selectedIds))
       setSelectedIds(new Set())
     } finally {
       setIsBulkBusy(false)
@@ -151,6 +164,8 @@ export function LeadsPage() {
   }
 
   const hasAnyLeadsAtAll = total > 0 || isLoading || Boolean(debouncedSearch) || filters.status !== 'all'
+  const showSkeleton = isLoading && !hasLoadedOnce
+  const isRefetching = isLoading && hasLoadedOnce
 
   return (
     <div className="flex flex-col gap-5">
@@ -183,6 +198,7 @@ export function LeadsPage() {
               selectedCount={selectedIds.size}
               isBusy={isBulkBusy}
               onAddToCampaign={handleAddToCampaign}
+              onGenerateEmails={handleGenerateEmails}
               onDelete={handleBulkDelete}
               onClear={() => setSelectedIds(new Set())}
             />
@@ -219,10 +235,11 @@ export function LeadsPage() {
           />
         )
       ) : (
-        <div className="flex flex-col rounded-lg border border-graphite-700 overflow-hidden">
+        <motion.div layout className="flex flex-col rounded-lg border border-graphite-700 overflow-hidden">
           <LeadsTable
             leads={leads}
-            isLoading={isLoading}
+            isLoading={showSkeleton}
+            isRefetching={isRefetching}
             skeletonRowCount={PAGE_SIZE}
             selectedIds={selectedIds}
             onToggleRow={toggleRow}
@@ -236,7 +253,7 @@ export function LeadsPage() {
             isLoading={isLoading}
             onPageChange={setPage}
           />
-        </div>
+        </motion.div>
       )}
 
       <LeadDetailDrawer leadId={openLeadId} onClose={() => setOpenLeadId(null)} />

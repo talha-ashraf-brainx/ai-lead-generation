@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { springPanel } from '../../lib/motion'
 import { IconX } from './icons'
@@ -10,14 +10,52 @@ interface DrawerProps {
   children: ReactNode
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+
 export function Drawer({ open, onClose, title, children }: DrawerProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const previouslyFocused = useRef<HTMLElement | null>(null)
+
+  // Trap Tab inside the panel while open — without this, keyboard focus can reach
+  // (and activate) nav links behind the backdrop, leaving the drawer mounted and
+  // overlapping whatever page loads next.
   useEffect(() => {
     if (!open) return
+    previouslyFocused.current = document.activeElement as HTMLElement | null
+
+    const focusTimeout = setTimeout(() => {
+      const focusable = panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      focusable?.[0]?.focus()
+    }, 50)
+
     function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return
+
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
+
     document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
+    return () => {
+      clearTimeout(focusTimeout)
+      document.removeEventListener('keydown', handleKey)
+      previouslyFocused.current?.focus()
+    }
   }, [open, onClose])
 
   return (
@@ -33,6 +71,7 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
             className="absolute inset-0 bg-graphite-950/60"
           />
           <motion.div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
             aria-label={title}

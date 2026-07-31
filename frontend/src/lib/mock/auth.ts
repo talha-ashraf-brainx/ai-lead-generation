@@ -5,7 +5,7 @@ import type { User } from '../../types/auth'
 
 export const DEMO_CREDENTIALS = { email: 'demo@leadgen.ai', password: 'outreach123' }
 
-const DEMO_USER: User = {
+export const DEMO_USER: User = {
   id: 'usr_demo',
   name: 'Jordan Ellis',
   email: DEMO_CREDENTIALS.email,

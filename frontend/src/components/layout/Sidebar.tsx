@@ -1,9 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { IconAnalytics, IconCampaigns, IconLeads, IconSettings, IconX } from '../ui/icons'
+import { motion } from 'motion/react'
+import { SignalGauge } from '../ui/SignalGauge'
+import { IconAnalytics, IconCampaigns, IconGauge, IconLeads, IconSettings, IconX } from '../ui/icons'
 
 const NAV_ITEMS = [
   { to: '/leads', label: 'Leads', icon: IconLeads },
   { to: '/campaigns', label: 'Campaigns', icon: IconCampaigns },
+  { to: '/tracker', label: 'Tracker', icon: IconGauge },
   { to: '/analytics', label: 'Analytics', icon: IconAnalytics },
   { to: '/settings', label: 'Settings', icon: IconSettings },
 ]
@@ -28,9 +31,12 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
         }`}
       >
         <div className="flex h-16 items-center justify-between px-6">
-          <span className="font-display text-lg font-semibold tracking-tight text-fog-50">
-            Emberline
-          </span>
+          <div className="flex items-center gap-2.5">
+            <SignalGauge size={30} />
+            <span className="font-display text-lg font-semibold tracking-tight text-fog-50">
+              Ember<span className="font-normal text-slate-400">line</span>
+            </span>
+          </div>
           <button
             onClick={onCloseMobile}
             aria-label="Close navigation"
@@ -47,17 +53,22 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
               to={to}
               onClick={onCloseMobile}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary/15 text-fog-50'
-                    : 'text-slate-400 hover:bg-graphite-800 hover:text-fog-100'
+                `relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive ? 'text-fog-50' : 'text-slate-400 hover:bg-graphite-800 hover:text-fog-100'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={`h-4.5 w-4.5 ${isActive ? 'text-primary' : ''}`} />
-                  {label}
+                  {isActive && (
+                    <motion.span
+                      layoutId="active-nav-pill"
+                      className="absolute inset-0 rounded-md bg-primary/15"
+                      transition={{ type: 'spring', stiffness: 480, damping: 38 }}
+                    />
+                  )}
+                  <Icon className={`relative z-10 h-4.5 w-4.5 ${isActive ? 'text-primary' : ''}`} />
+                  <span className="relative z-10">{label}</span>
                 </>
               )}
             </NavLink>

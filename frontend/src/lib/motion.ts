@@ -8,6 +8,11 @@ export const springPanel: Transition = { type: 'spring', stiffness: 420, damping
 export const easeFast: Transition = { duration: 0.15, ease: EASE_INSTRUMENT }
 export const easeBase: Transition = { duration: 0.22, ease: EASE_INSTRUMENT }
 
+// Snappier, more mechanical spring for direct-manipulation feedback (button
+// press, toggle, card hover) — distinct from the panel spring's slower settle.
+export const springPress: Transition = { type: 'spring', stiffness: 520, damping: 28, mass: 0.6 }
+export const springLayout: Transition = { type: 'spring', stiffness: 380, damping: 34, mass: 0.8 }
+
 export const fadeIn: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: easeBase },

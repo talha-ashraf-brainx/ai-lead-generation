@@ -37,6 +37,8 @@ export interface FetchLeadsParams {
   status?: LeadStatus | 'all'
   industry?: string
   campaignId?: string | 'all' | 'none'
+  createdAfter?: string
+  createdBefore?: string
 }
 
 export interface FetchLeadsResult {

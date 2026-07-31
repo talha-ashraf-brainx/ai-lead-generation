@@ -89,11 +89,11 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 5 — AI Email Generation & Review
-- [ ] Generate-email trigger (per lead or bulk for a campaign)
-- [ ] Email preview/edit screen (subject + body, editable before send)
-- [ ] Regenerate option (re-run AI generation with same lead context)
-- [ ] Personalization variables shown (company, industry, pain point used)
-- [ ] Loading/error states for generation calls
+- [x] Generate-email trigger (per lead or bulk for a campaign)
+- [x] Email preview/edit screen (subject + body, editable before send)
+- [x] Regenerate option (re-run AI generation with same lead context)
+- [x] Personalization variables shown (company, industry, pain point used)
+- [x] Loading/error states for generation calls
 
 **Design requirements:**
 - Side-by-side or stacked layout: lead context on one side, editable email on the other
@@ -103,11 +103,11 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 6 — Campaigns & Outreach Module
-- [ ] Campaign creation (select leads, review generated emails, confirm send)
-- [ ] Send scheduling (immediate vs scheduled)
-- [ ] Follow-up sequence config (day 3 / day 7 toggle, editable follow-up templates)
-- [ ] Campaign list (status: draft, sending, active, completed)
-- [ ] Campaign detail view (per-lead send status within the campaign)
+- [x] Campaign creation (select leads, review generated emails, confirm send)
+- [x] Send scheduling (immediate vs scheduled)
+- [x] Follow-up sequence config (day 3 / day 7 toggle, editable follow-up templates)
+- [x] Campaign list (status: draft, sending, active, completed)
+- [x] Campaign detail view (per-lead send status within the campaign)
 
 **Design requirements:**
 - Multi-step flow (select leads → review emails → configure follow-ups → confirm) with clear step indicator
@@ -117,10 +117,10 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 7 — Lead Tracker Dashboard
-- [ ] Pipeline view: contacted → opened → replied → converted
-- [ ] Kanban-style board or status-grouped table (toggle if time allows)
-- [ ] Per-lead activity timeline (sent, opened, replied, follow-up sent)
-- [ ] Quick filters by campaign/date range
+- [x] Pipeline view: contacted → opened → replied → converted
+- [x] Kanban-style board or status-grouped table (toggle if time allows)
+- [x] Per-lead activity timeline (sent, opened, replied, follow-up sent)
+- [x] Quick filters by campaign/date range
 
 **Design requirements:**
 - Visual funnel/summary counts at top (matches demo flow: 20 contacted, 8 opened, 3 replied)
@@ -129,9 +129,9 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 8 — Notifications Module
-- [ ] In-app notification list/bell dropdown (new replies)
-- [ ] Notification settings (Slack webhook URL, email alert toggle)
-- [ ] Mark as read / clear notifications
+- [x] In-app notification list/bell dropdown (new replies)
+- [x] Notification settings (Slack webhook URL, email alert toggle)
+- [x] Mark as read / clear notifications
 
 **Design requirements:**
 - Unread indicator (badge count) on topbar bell
@@ -140,10 +140,10 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 9 — Analytics Module
-- [ ] Overview stat cards (open rate, reply rate, conversion rate)
-- [ ] Trend chart(s) over time
-- [ ] Per-campaign breakdown table
-- [ ] Date range filter
+- [x] Overview stat cards (open rate, reply rate, conversion rate)
+- [x] Trend chart(s) over time
+- [x] Per-campaign breakdown table
+- [x] Date range filter
 
 **Design requirements:**
 - Charting library decision made before build (e.g. Recharts)
@@ -153,10 +153,10 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 10 — Settings Module
-- [ ] API key management (Apollo/Hunter, OpenAI, SendGrid) — masked inputs
-- [ ] Sender identity config (from name/email, SMTP fallback if used)
-- [ ] Account/profile settings
-- [ ] Danger zone (disconnect integrations, delete data)
+- [x] API key management (Apollo/Hunter, OpenAI, SendGrid) — masked inputs
+- [x] Sender identity config (from name/email, SMTP fallback if used)
+- [x] Account/profile settings
+- [x] Danger zone (disconnect integrations, delete data)
 
 **Design requirements:**
 - Grouped settings sections with clear save/cancel per section
@@ -165,11 +165,11 @@ Stack: Vite + React + TypeScript + React Router. Built phase by phase, module by
 ---
 
 ## Phase 11 — Polish Pass
-- [ ] Responsive check across all modules (mobile/tablet breakpoints)
-- [ ] Global error boundary + 404 page
-- [ ] Loading skeletons for all data-fetching views
-- [ ] Accessibility pass (keyboard nav, focus states, contrast)
-- [ ] Empty-state illustrations/copy for all list views
+- [x] Responsive check across all modules (mobile/tablet breakpoints)
+- [x] Global error boundary + 404 page
+- [x] Loading skeletons for all data-fetching views
+- [x] Accessibility pass (keyboard nav, focus states, contrast)
+- [x] Empty-state illustrations/copy for all list views
 
 **Design requirements:** Cross-cutting — applied to all modules above, done last once module UIs are stable.
 

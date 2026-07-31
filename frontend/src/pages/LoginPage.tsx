@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useCountUp } from '../hooks/useCountUp'
 import { Button } from '../components/ui/Button'
 import { TextField } from '../components/ui/TextField'
+import { SignalGauge } from '../components/ui/SignalGauge'
 import { DEMO_CREDENTIALS } from '../lib/mock/auth'
 
 type LocationState = { from?: { pathname: string } }
@@ -86,12 +87,21 @@ export function LoginPage() {
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-graphite-950 p-12 lg:flex">
         <div
-          className="signal-glow pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full blur-3xl"
+          className="signal-glow pointer-events-none absolute -top-24 -right-24 h-[30rem] w-[30rem] rounded-full blur-3xl"
           style={{ background: 'radial-gradient(circle, var(--color-temp-hot), transparent 70%)' }}
         />
+        <motion.div
+          className="pointer-events-none absolute top-16 right-8"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 0.9, scale: 1 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <SignalGauge size={240} animated />
+        </motion.div>
 
-        <span className="relative font-display text-xl font-semibold tracking-tight text-fog-50">
-          Emberline
+        <span className="relative flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight text-fog-50">
+          <SignalGauge size={26} />
+          Ember<span className="font-normal text-slate-400">line</span>
         </span>
 
         <div className="relative flex flex-col gap-8">
@@ -156,8 +166,9 @@ export function LoginPage() {
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-sm"
         >
-          <span className="mb-8 block font-display text-xl font-semibold text-fog-50 lg:hidden">
-            Emberline
+          <span className="mb-8 flex items-center gap-2.5 font-display text-xl font-semibold text-fog-50 lg:hidden">
+            <SignalGauge size={26} />
+            Ember<span className="font-normal text-slate-400">line</span>
           </span>
 
           <h2 className="font-display text-2xl font-medium text-fog-50">Sign in</h2>

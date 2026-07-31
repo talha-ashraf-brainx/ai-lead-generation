@@ -218,3 +218,90 @@ export function IconMapPin(props: IconProps) {
     </svg>
   )
 }
+
+export function IconMail(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 6h15A1.5 1.5 0 0 1 21 7.5v9A1.5 1.5 0 0 1 19.5 18h-15A1.5 1.5 0 0 1 3 16.5v-9A1.5 1.5 0 0 1 4.5 6Z" />
+      <path d="m4 7 8 6 8-6" />
+    </svg>
+  )
+}
+
+export function IconRefresh(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.4M19.5 12a7.5 7.5 0 0 1-12.6 5.4" />
+      <path d="M17 4.5V7h2.5" />
+      <path d="M7 19.5V17H4.5" />
+    </svg>
+  )
+}
+
+export function IconGauge(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 15a8 8 0 1 1 16 0" />
+      <path d="M12 15 15.5 10" />
+      <path d="M4 15h1.2M18.8 15H20M6.5 8.5l.9.9M17.5 8.5l-.9.9M12 5.5v1.2" />
+    </svg>
+  )
+}
+
+export function IconClock(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  )
+}
+
+export function IconLayoutGrid(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1" />
+    </svg>
+  )
+}
+
+export function IconListBullets(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+      <circle cx="4.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="17.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function IconActivity(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 12h3l2-6 4 12 2-9 1.5 3h4.5" />
+    </svg>
+  )
+}
+
+export function IconEye(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.75" />
+    </svg>
+  )
+}
+
+export function IconEyeOff(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 3l18 18" />
+      <path d="M10.6 5.6A10.6 10.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a15.6 15.6 0 0 1-3.3 4.2M6.6 6.6C4 8.4 2.5 12 2.5 12S6 18.5 12 18.5a9.8 9.8 0 0 0 3.4-.6" />
+      <path d="M9.9 9.9a2.75 2.75 0 0 0 3.9 3.9" />
+    </svg>
+  )
+}

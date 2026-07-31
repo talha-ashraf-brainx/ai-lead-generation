@@ -1,16 +1,18 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '../../hooks/useAuth'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { popIn } from '../../lib/motion'
 import { Button } from '../ui/Button'
-import { IconBell, IconChevronDown, IconLogout, IconMenu } from '../ui/icons'
+import { NotificationBell } from '../notifications/NotificationBell'
+import { IconChevronDown, IconLogout, IconMenu } from '../ui/icons'
 
 const PAGE_TITLES: Record<string, string> = {
   '/leads': 'Leads',
   '/leads/import': 'Import Leads',
   '/campaigns': 'Campaigns',
+  '/tracker': 'Lead Tracker',
   '/analytics': 'Analytics',
   '/settings': 'Settings',
 }
@@ -24,13 +26,14 @@ function pageTitleFor(pathname: string): string {
 export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const { user, logout } = useAuth()
   const location = useLocation()
-  const [notifOpen, setNotifOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const notifRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  useClickOutside(notifRef, () => setNotifOpen(false))
   useClickOutside(menuRef, () => setMenuOpen(false))
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
 
   const initials = user?.name
     .split(' ')
@@ -54,32 +57,7 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
       </h1>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => setNotifOpen((open) => !open)}
-            aria-label="Notifications"
-            className="relative rounded-md p-2 text-slate-400 transition-colors hover:bg-graphite-800 hover:text-fog-100"
-          >
-            <IconBell className="h-5 w-5" />
-          </button>
-          <AnimatePresence>
-            {notifOpen && (
-              <motion.div
-                variants={popIn}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                style={{ transformOrigin: 'top right' }}
-                className="absolute top-full right-0 mt-2 w-72 rounded-md border border-graphite-700 bg-graphite-900 p-4 shadow-xl"
-              >
-                <p className="font-display text-sm font-medium text-fog-50">Notifications</p>
-                <p className="mt-2 text-sm text-slate-400">
-                  No new replies yet. Reply alerts arrive here once outreach is live.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <NotificationBell />
 
         <div className="relative" ref={menuRef}>
           <button

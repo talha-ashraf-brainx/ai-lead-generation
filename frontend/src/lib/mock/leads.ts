@@ -184,6 +184,8 @@ export async function fetchLeads(params: FetchLeadsParams): Promise<FetchLeadsRe
     ) {
       return false
     }
+    if (params.createdAfter && lead.createdAt < params.createdAfter) return false
+    if (params.createdBefore && lead.createdAt > params.createdBefore) return false
     return true
   })
 
@@ -204,7 +206,21 @@ export function listIndustries(): string[] {
 }
 
 export function listCampaignOptions(): CampaignOption[] {
-  return CAMPAIGN_OPTIONS
+  const options = new Map<string, string>(CAMPAIGN_OPTIONS.map((option) => [option.id, option.name]))
+  readStore().forEach((lead) => {
+    if (lead.campaignId && lead.campaignName) options.set(lead.campaignId, lead.campaignName)
+  })
+  return Array.from(options, ([id, name]) => ({ id, name }))
+}
+
+export function listLeadIdsForCampaign(campaignId: string): string[] {
+  return readStore()
+    .filter((lead) => lead.campaignId === campaignId)
+    .map((lead) => lead.id)
+}
+
+export function listLeadsByStatuses(statuses: Lead['status'][]): Lead[] {
+  return readStore().filter((lead) => statuses.includes(lead.status))
 }
 
 export const DEFAULT_LEAD_FILTERS: LeadFiltersState = {
@@ -323,14 +339,12 @@ function scheduleEnrichment(ids: string[]) {
   })
 }
 
-export async function bulkAddToCampaign(ids: string[], campaignId: string): Promise<void> {
+export async function bulkAddToCampaign(ids: string[], campaignId: string, campaignName?: string): Promise<void> {
   await delay(400)
-  const campaign = CAMPAIGN_OPTIONS.find((option) => option.id === campaignId)
+  const resolvedName = campaignName ?? CAMPAIGN_OPTIONS.find((option) => option.id === campaignId)?.name ?? null
   const idSet = new Set(ids)
   const updated = readStore().map((lead) =>
-    idSet.has(lead.id)
-      ? { ...lead, campaignId: campaign?.id ?? null, campaignName: campaign?.name ?? null }
-      : lead,
+    idSet.has(lead.id) ? { ...lead, campaignId, campaignName: resolvedName } : lead,
   )
   writeStore(updated)
 }
