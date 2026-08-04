@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { listCampaignOptions } from '../../lib/mock/leads'
+import type { CampaignOption } from '../../types/lead'
 import { Button } from '../ui/Button'
 import { Select } from '../ui/Select'
 import { IconMail, IconTrash, IconX } from '../ui/icons'
@@ -7,7 +7,8 @@ import { IconMail, IconTrash, IconX } from '../ui/icons'
 interface BulkActionsBarProps {
   selectedCount: number
   isBusy: boolean
-  onAddToCampaign: (campaignId: string, campaignName: string) => void
+  campaignOptions: CampaignOption[]
+  onAddToCampaign: (campaignId: string) => void
   onGenerateEmails: () => void
   onDelete: () => void
   onClear: () => void
@@ -16,12 +17,12 @@ interface BulkActionsBarProps {
 export function BulkActionsBar({
   selectedCount,
   isBusy,
+  campaignOptions,
   onAddToCampaign,
   onGenerateEmails,
   onDelete,
   onClear,
 }: BulkActionsBarProps) {
-  const campaignOptions = listCampaignOptions()
   const [campaignId, setCampaignId] = useState(campaignOptions[0]?.id ?? '')
   const selectedCampaign = campaignOptions.find((option) => option.id === campaignId)
 
@@ -41,7 +42,7 @@ export function BulkActionsBar({
         </div>
         <Button
           variant="ghost"
-          onClick={() => selectedCampaign && onAddToCampaign(campaignId, selectedCampaign.name)}
+          onClick={() => selectedCampaign && onAddToCampaign(campaignId)}
           disabled={isBusy || !campaignId}
         >
           Add to campaign

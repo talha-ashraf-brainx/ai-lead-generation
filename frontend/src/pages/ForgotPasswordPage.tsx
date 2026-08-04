@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { TextField } from '../components/ui/TextField'
-import { mockRequestPasswordReset } from '../lib/mock/auth'
+import { requestPasswordReset } from '../lib/api/auth'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -15,7 +15,7 @@ export function ForgotPasswordPage() {
     setError(null)
     setIsSubmitting(true)
     try {
-      await mockRequestPasswordReset(email)
+      await requestPasswordReset(email)
       setIsSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

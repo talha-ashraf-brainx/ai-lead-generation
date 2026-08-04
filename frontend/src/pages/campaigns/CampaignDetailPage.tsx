@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { fetchCampaign, fetchCampaignLeads } from '../../lib/mock/campaigns'
+import { fetchCampaign, fetchCampaignLeads } from '../../lib/api/campaigns'
 import { CampaignLeadsTable } from '../../components/campaigns/CampaignLeadsTable'
 import { CampaignStatusBadge } from '../../components/ui/StatusBadge'
 import { Skeleton } from '../../components/ui/Skeleton'
@@ -35,7 +35,7 @@ export function CampaignDetailPage() {
       if (cancelled) return
       setCampaign(result ?? null)
       if (result) {
-        const campaignLeads = await fetchCampaignLeads(result)
+        const campaignLeads = await fetchCampaignLeads(result.id)
         if (!cancelled) setLeads(campaignLeads)
       }
       if (!cancelled) setIsLoading(false)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchSenderIdentity, saveSenderIdentity } from '../../lib/mock/settings'
+import { fetchSenderIdentity, saveSenderIdentity } from '../../lib/api/settings'
 import { SettingsSection } from './SettingsSection'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchApiKeyStatuses } from '../lib/mock/settings'
+import { fetchApiKeyStatuses } from '../lib/api/settings'
 import { ApiKeysSection } from '../components/settings/ApiKeysSection'
 import { SenderIdentitySection } from '../components/settings/SenderIdentitySection'
 import { ProfileSection } from '../components/settings/ProfileSection'

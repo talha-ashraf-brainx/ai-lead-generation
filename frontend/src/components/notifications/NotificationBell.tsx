@@ -8,8 +8,7 @@ import {
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  subscribeToNotifications,
-} from '../../lib/mock/notifications'
+} from '../../lib/api/notifications'
 import { NotificationSettingsDrawer } from './NotificationSettingsDrawer'
 import { IconBell, IconSettings } from '../ui/icons'
 import type { AppNotification } from '../../types/notification'
@@ -19,6 +18,8 @@ const KIND_DOT: Record<AppNotification['kind'], string> = {
   conversion: 'var(--color-temp-hot)',
   follow_up: 'var(--color-slate-400)',
 }
+
+const POLL_INTERVAL_MS = 20000
 
 function relativeTime(iso: string): string {
   const hours = Math.round((Date.now() - new Date(iso).getTime()) / 3_600_000)
@@ -42,7 +43,8 @@ export function NotificationBell() {
       fetchNotifications().then(setNotifications)
     }
     load()
-    return subscribeToNotifications(load)
+    const interval = setInterval(load, POLL_INTERVAL_MS)
+    return () => clearInterval(interval)
   }, [])
 
   // Topbar persists across route changes, so any open dropdown/drawer would
@@ -55,7 +57,10 @@ export function NotificationBell() {
   const unreadCount = notifications.filter((notification) => !notification.read).length
 
   async function handleOpenItem(notification: AppNotification) {
-    if (!notification.read) await markNotificationRead(notification.id)
+    if (!notification.read) {
+      await markNotificationRead(notification.id)
+      setNotifications((current) => current.map((item) => (item.id === notification.id ? { ...item, read: true } : item)))
+    }
     setOpen(false)
     if (notification.campaignId) navigate(`/campaigns/${notification.campaignId}`)
   }
@@ -130,14 +135,18 @@ export function NotificationBell() {
                 </div>
                 <div className="flex items-center justify-between border-t border-graphite-700 px-4 py-2.5">
                   <button
-                    onClick={() => markAllNotificationsRead()}
+                    onClick={() =>
+                      markAllNotificationsRead().then(() =>
+                        setNotifications((current) => current.map((item) => ({ ...item, read: true }))),
+                      )
+                    }
                     disabled={unreadCount === 0}
                     className="text-xs text-slate-400 transition-colors hover:text-fog-100 disabled:pointer-events-none disabled:opacity-40"
                   >
                     Mark all as read
                   </button>
                   <button
-                    onClick={() => clearNotifications()}
+                    onClick={() => clearNotifications().then(() => setNotifications([]))}
                     className="text-xs text-slate-400 transition-colors hover:text-fog-100"
                   >
                     Clear all

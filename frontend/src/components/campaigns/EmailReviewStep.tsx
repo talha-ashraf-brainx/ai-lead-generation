@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { fetchLead } from '../../lib/mock/leads'
-import { bulkGenerateEmails, fetchEmailDraft } from '../../lib/mock/emailDrafts'
+import { fetchLead } from '../../lib/api/leads'
+import { bulkGenerateEmails, fetchEmailDraft } from '../../lib/api/emailDrafts'
 import { Button } from '../ui/Button'
 import { EmailDraftBadge } from '../ui/StatusBadge'
 import { Skeleton } from '../ui/Skeleton'

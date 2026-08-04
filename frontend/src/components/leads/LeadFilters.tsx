@@ -1,5 +1,5 @@
-import type { LeadFiltersState, LeadStatus } from '../../types/lead'
-import { CAMPAIGN_OPTIONS, DEFAULT_LEAD_FILTERS } from '../../lib/mock/leads'
+import type { CampaignOption, LeadFiltersState, LeadStatus } from '../../types/lead'
+import { DEFAULT_LEAD_FILTERS } from '../../lib/api/leads'
 import { Select } from '../ui/Select'
 import { IconSearch, IconX } from '../ui/icons'
 
@@ -14,10 +14,11 @@ const STATUS_OPTIONS: { value: LeadStatus | 'all'; label: string }[] = [
 interface LeadFiltersProps {
   value: LeadFiltersState
   industries: string[]
+  campaigns: CampaignOption[]
   onChange: (next: LeadFiltersState) => void
 }
 
-export function LeadFilters({ value, industries, onChange }: LeadFiltersProps) {
+export function LeadFilters({ value, industries, campaigns, onChange }: LeadFiltersProps) {
   const isFiltered =
     value.search || value.status !== 'all' || value.industry !== 'all' || value.campaignId !== 'all'
 
@@ -67,7 +68,7 @@ export function LeadFilters({ value, industries, onChange }: LeadFiltersProps) {
         >
           <option value="all">All campaigns</option>
           <option value="none">No campaign</option>
-          {CAMPAIGN_OPTIONS.map((campaign) => (
+          {campaigns.map((campaign) => (
             <option key={campaign.id} value={campaign.id}>
               {campaign.name}
             </option>

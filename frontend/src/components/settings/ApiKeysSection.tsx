@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { API_KEY_PROVIDERS, saveApiKey } from '../../lib/mock/settings'
+import { API_KEY_PROVIDERS, saveApiKey } from '../../lib/api/settings'
 import { SettingsSection } from './SettingsSection'
 import { Button } from '../ui/Button'
 import { SecretField } from '../ui/SecretField'

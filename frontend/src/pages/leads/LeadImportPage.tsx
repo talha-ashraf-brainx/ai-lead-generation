@@ -9,7 +9,7 @@ import { Button } from '../../components/ui/Button'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { fadeIn } from '../../lib/motion'
 import { IconChevronLeft, IconFileText, IconSearch, IconSpinner } from '../../components/ui/icons'
-import { importCsvRows, previewLeadsCsv, searchLeads } from '../../lib/mock/leads'
+import { importCsvRows, previewLeadsCsv, searchLeads } from '../../lib/api/leads'
 import type { CsvPreview, ImportSummary } from '../../types/lead'
 
 type Tab = 'csv' | 'search'

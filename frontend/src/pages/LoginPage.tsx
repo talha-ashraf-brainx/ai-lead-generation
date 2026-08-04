@@ -6,7 +6,6 @@ import { useCountUp } from '../hooks/useCountUp'
 import { Button } from '../components/ui/Button'
 import { TextField } from '../components/ui/TextField'
 import { SignalGauge } from '../components/ui/SignalGauge'
-import { DEMO_CREDENTIALS } from '../lib/mock/auth'
 
 type LocationState = { from?: { pathname: string } }
 
@@ -62,7 +61,7 @@ export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState(DEMO_CREDENTIALS.email)
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -172,9 +171,7 @@ export function LoginPage() {
           </span>
 
           <h2 className="font-display text-2xl font-medium text-fog-50">Sign in</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Demo account — {DEMO_CREDENTIALS.email} / {DEMO_CREDENTIALS.password}
-          </p>
+          <p className="mt-2 text-sm text-slate-400">Sign in with your Emberline account.</p>
 
           <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
             <TextField

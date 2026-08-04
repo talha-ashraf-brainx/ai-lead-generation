@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { API_KEY_PROVIDERS, deleteAllData, disconnectApiKey } from '../../lib/mock/settings'
+import { API_KEY_PROVIDERS, deleteAllData, disconnectApiKey } from '../../lib/api/settings'
 import { SettingsSection } from './SettingsSection'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'

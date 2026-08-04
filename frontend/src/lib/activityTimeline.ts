@@ -1,5 +1,5 @@
-import type { Lead } from '../../types/lead'
-import type { ActivityEvent } from '../../types/activity'
+import type { Lead } from '../types/lead'
+import type { ActivityEvent } from '../types/activity'
 
 // Deterministic per-lead timeline derived from status + createdAt — a prototype
 // stand-in for the real send/open/reply event log SendGrid webhooks will populate.

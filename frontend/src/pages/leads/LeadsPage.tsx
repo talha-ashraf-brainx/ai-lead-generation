@@ -11,18 +11,13 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { Pagination } from '../../components/ui/Pagination'
 import { fadeSlideUp } from '../../lib/motion'
 import { IconLeads, IconUpload } from '../../components/ui/icons'
-import {
-  DEFAULT_LEAD_FILTERS,
-  bulkAddToCampaign,
-  bulkDeleteLeads,
-  fetchLeads,
-  listIndustries,
-  subscribeToLeads,
-} from '../../lib/mock/leads'
-import { bulkGenerateEmails } from '../../lib/mock/emailDrafts'
-import type { Lead, LeadFiltersState } from '../../types/lead'
+import { DEFAULT_LEAD_FILTERS, bulkAddToCampaign, bulkDeleteLeads, fetchLeads, listIndustries } from '../../lib/api/leads'
+import { bulkGenerateEmails } from '../../lib/api/emailDrafts'
+import { listCampaignSummaries } from '../../lib/api/campaigns'
+import type { CampaignOption, Lead, LeadFiltersState } from '../../types/lead'
 
 const PAGE_SIZE = 12
+const BACKGROUND_POLL_INTERVAL_MS = 5000
 
 export function LeadsPage() {
   const [filters, setFilters] = useState<LeadFiltersState>(DEFAULT_LEAD_FILTERS)
@@ -40,12 +35,11 @@ export function LeadsPage() {
   const [openLeadId, setOpenLeadId] = useState<string | null>(null)
   const [isBulkBusy, setIsBulkBusy] = useState(false)
   const [industries, setIndustries] = useState<string[]>([])
+  const [campaignOptions, setCampaignOptions] = useState<CampaignOption[]>([])
 
-  // Background enrichment can fire many store updates in quick succession (one per
-  // lead). Those refreshes should patch data in place, not thrash isLoading — so they're
-  // debounced and flagged here to skip the loading-state flip in the fetch effect below.
+  // No push channel from the backend for background changes (enrichment completing,
+  // a lead opening) — poll instead. This flag keeps a poll tick from thrashing isLoading.
   const isBackgroundRefresh = useRef(false)
-  const backgroundRefreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(filters.search), 300)
@@ -57,17 +51,15 @@ export function LeadsPage() {
   }, [debouncedSearch, filters.status, filters.industry, filters.campaignId])
 
   useEffect(() => {
-    const unsubscribe = subscribeToLeads(() => {
-      if (backgroundRefreshTimeout.current) clearTimeout(backgroundRefreshTimeout.current)
-      backgroundRefreshTimeout.current = setTimeout(() => {
-        isBackgroundRefresh.current = true
-        setRefreshTick((tick) => tick + 1)
-      }, 400)
-    })
-    return () => {
-      unsubscribe()
-      if (backgroundRefreshTimeout.current) clearTimeout(backgroundRefreshTimeout.current)
-    }
+    listCampaignSummaries().then(setCampaignOptions)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      isBackgroundRefresh.current = true
+      setRefreshTick((tick) => tick + 1)
+    }, BACKGROUND_POLL_INTERVAL_MS)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -92,7 +84,9 @@ export function LeadsPage() {
         if (cancelled) return
         setLeads(result.rows)
         setTotal(result.total)
-        setIndustries(listIndustries())
+        listIndustries().then((industryList) => {
+          if (!cancelled) setIndustries(industryList)
+        })
         setHasLoadedOnce(true)
       })
       .catch(() => {
@@ -130,11 +124,13 @@ export function LeadsPage() {
     })
   }
 
-  async function handleAddToCampaign(campaignId: string, campaignName: string) {
+  async function handleAddToCampaign(campaignId: string) {
     setIsBulkBusy(true)
     try {
-      await bulkAddToCampaign(Array.from(selectedIds), campaignId, campaignName)
+      await bulkAddToCampaign(Array.from(selectedIds), campaignId)
       setSelectedIds(new Set())
+      isBackgroundRefresh.current = true
+      setRefreshTick((tick) => tick + 1)
     } finally {
       setIsBulkBusy(false)
     }
@@ -158,6 +154,8 @@ export function LeadsPage() {
     try {
       await bulkDeleteLeads(Array.from(selectedIds))
       setSelectedIds(new Set())
+      isBackgroundRefresh.current = true
+      setRefreshTick((tick) => tick + 1)
     } finally {
       setIsBulkBusy(false)
     }
@@ -184,7 +182,7 @@ export function LeadsPage() {
         </Link>
       </div>
 
-      <LeadFilters value={filters} industries={industries} onChange={setFilters} />
+      <LeadFilters value={filters} industries={industries} campaigns={campaignOptions} onChange={setFilters} />
 
       <AnimatePresence>
         {selectedIds.size > 0 && (
@@ -197,6 +195,7 @@ export function LeadsPage() {
             <BulkActionsBar
               selectedCount={selectedIds.size}
               isBusy={isBulkBusy}
+              campaignOptions={campaignOptions}
               onAddToCampaign={handleAddToCampaign}
               onGenerateEmails={handleGenerateEmails}
               onDelete={handleBulkDelete}

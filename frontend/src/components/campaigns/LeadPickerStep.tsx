@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchLeads } from '../../lib/mock/leads'
+import { fetchLeads } from '../../lib/api/leads'
 import { Checkbox } from '../ui/Checkbox'
 import { TextField } from '../ui/TextField'
 import { StatusBadge } from '../ui/StatusBadge'

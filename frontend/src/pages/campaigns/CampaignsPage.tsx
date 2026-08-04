@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { fetchCampaigns, subscribeToCampaigns } from '../../lib/mock/campaigns'
+import { fetchCampaigns } from '../../lib/api/campaigns'
 import { Button } from '../../components/ui/Button'
 import { CampaignStatusBadge } from '../../components/ui/StatusBadge'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -9,6 +9,8 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { staggerContainer, staggerRow } from '../../lib/motion'
 import { IconCampaigns, IconChevronRight, IconPlus } from '../../components/ui/icons'
 import type { Campaign, CampaignStatus } from '../../types/campaign'
+
+const POLL_INTERVAL_MS = 8000
 
 const STATUS_ACCENT: Record<CampaignStatus, string> = {
   draft: 'var(--color-slate-500)',
@@ -36,10 +38,10 @@ export function CampaignsPage() {
       })
     }
     load()
-    const unsubscribe = subscribeToCampaigns(load)
+    const interval = setInterval(load, POLL_INTERVAL_MS)
     return () => {
       cancelled = true
-      unsubscribe()
+      clearInterval(interval)
     }
   }, [])
 

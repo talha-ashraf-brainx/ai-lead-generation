@@ -1,26 +1,29 @@
 # Frontend Integration Guide
 
-The API contract for swapping the frontend's mock layer (`frontend/src/lib/mock/*`, all localStorage-backed) over to the real backend (`backend/`, Phases 0–7 done — see `backend-build.md`). This document describes the contract; rewriting each mock call site to use it is separate, not-yet-started work.
+The API contract for the frontend's real backend integration (`backend/`, Phases 0–7 done — see `working.md`). The mock layer (`frontend/src/lib/mock/*`, all localStorage-backed) has been fully replaced by `frontend/src/lib/api/*`, which implements everything below.
 
 ## 1. One swappable base URL
 
 Every request must go through a single constant so switching dev → staging → prod is a one-line env var change, never a find-and-replace across components.
 
 ```ts
-// frontend/src/lib/api/client.ts (recommended — doesn't exist yet)
+// frontend/src/lib/api/client.ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  status: number;
+  constructor(status: number, message: string) {
     super(message);
+    this.status = status;
   }
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const isFormData = init.body instanceof FormData; // multer wants the browser's own boundary header, not ours
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include", // required — auth is an httpOnly cookie, not a bearer token
-    headers: { "Content-Type": "application/json", ...init.headers },
     ...init,
+    headers: isFormData ? init.headers : { "Content-Type": "application/json", ...init.headers },
   });
 
   if (!response.ok) {
@@ -32,7 +35,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 ```
 
-No component, page, or `lib/mock/*` replacement should call `fetch` directly or embed a URL — always through this one function. Set `VITE_API_BASE_URL` per environment (`frontend/.env.local` for dev, build-time env for staging/prod).
+No component or page should call `fetch` directly or embed a URL — always through this one function (`frontend/src/lib/api/*`). Set `VITE_API_BASE_URL` per environment (`frontend/.env.local` for dev — already pointed at this repo's backend port, `4001`; build-time env for staging/prod).
 
 ## 2. Auth model
 
@@ -59,6 +62,11 @@ No self-serve signup exists (single account-owner app, per SRS).
 
 | | |
 |---|---|
+| `GET /api/leads` | Query params `page, pageSize, search, status, industry, campaignId, createdAfter, createdBefore` (all optional except `page`/`pageSize`, which default to `1`/`20`) → `{ rows: Lead[], total: number }`. `status`/`industry` accept `"all"`; `campaignId` accepts `"all"`, `"none"`, or a campaign id. Mirrors the mock's `fetchLeads(params)` contract exactly. |
+| `GET /api/leads/:id` | → the `Lead`, or `404` if not found |
+| `GET /api/leads/industries` | → `string[]`, distinct industries across all leads, sorted |
+| `POST /api/leads/bulk-delete` | `{ ids: string[] }` → `204` |
+| `POST /api/leads/bulk-add-to-campaign` | `{ ids: string[], campaignId: string }` → the updated `Lead[]`. Just reassigns `campaignId`/`campaignName` — no sends are queued (that only happens via `POST /api/campaigns`, see §6). `404` if the campaign doesn't exist. |
 | `POST /api/leads/csv/preview` | `multipart/form-data`, field `file` (a `.csv`) → `{ headers, missingColumns, rows: [{rowNumber, company, contactName, email, website, isValid, issues}] }` |
 | `POST /api/leads/csv/import` | `{ rows: CsvPreviewRow[] }` (the *edited* rows from the preview step) → `{ importedCount, duplicateCount, errorCount, errorDetails: [{row, reason}] }` |
 | `POST /api/leads/search` | `{ niche, location }` → `202 { jobId, status: "processing" }`. Fire-and-forget; poll the job. |
@@ -68,9 +76,7 @@ No self-serve signup exists (single account-owner app, per SRS).
 
 **Lead shape returned everywhere:** `{ id, company, contactName, email, website, industry, status, enrichment, enrichmentAttempts, enrichmentError, campaignId, campaignName, painPoint, source, createdAt }` — a superset of the frontend's `Lead` type (extra fields `enrichmentAttempts`/`enrichmentError` are safe to ignore).
 
-### ⚠️ Not built — blocks LeadsPage/TrackerPage integration
-
-There is **no `GET /api/leads` list endpoint** (pagination/search/status/industry/campaign/date filters — everything `fetchLeads(params)` does in the mock) and **no `GET /api/leads/:id`** single-fetch. Every page that lists or looks up a lead by id (`LeadsPage`, `TrackerPage`, `LeadDetailDrawer`, `LeadActivityDrawer`, `EmailReviewPage`'s lead-context panel) is blocked on this. Also missing: `DELETE /api/leads/:id` (bulk delete), and a dedicated bulk-add-to-campaign endpoint (campaign creation *does* assign leads — see §6 — but there's no standalone "add these leads to an existing campaign" call). Flag this before scheduling frontend integration work — it needs to be built first.
+`GET /api/leads`, `GET /api/leads/:id`, `POST /api/leads/bulk-delete`, and `POST /api/leads/bulk-add-to-campaign` didn't exist when this doc was first written (they blocked `LeadsPage`/`TrackerPage`/`LeadDetailDrawer`/`LeadActivityDrawer` integration) — added alongside the frontend integration work itself, once it became clear they were a hard prerequisite rather than optional. There's still no push channel for background changes (enrichment completing, a status flipping) — see §11's polling note, now implemented as a 5s poll in `LeadsPage`.
 
 ## 5. Email drafts
 
@@ -109,7 +115,7 @@ There is **no `GET /api/leads` list endpoint** (pagination/search/status/industr
 
 **Campaign shape returned — differs from the frontend type:** `{ id, name, status, schedule, scheduledAt, followUpDay3Enabled, followUpDay3Subject, followUpDay3Body, followUpDay7Enabled, followUpDay7Subject, followUpDay7Body, createdAt, sentAt }`. Two real differences from the frontend's `Campaign` type:
 - **No `leadIds` array on the response.** Membership is derived from `leads.campaignId`, not stored on the campaign. Call `GET /api/campaigns/:id/leads` for the member list (or ids: `.map(l => l.id)`).
-- **Follow-ups are flattened**, not nested under a `followUps: { day3, day7 }` object. An adapter function is the cleanest fix on the frontend side rather than changing every read site.
+- **Follow-ups are flattened**, not nested under a `followUps: { day3, day7 }` object. An adapter function is the cleanest fix on the frontend side rather than changing every read site — see `adaptCampaign`/`adaptFollowUps` in `frontend/src/lib/api/campaigns.ts`, which also fetches `.../leads` per campaign to backfill `leadIds` so the rest of the frontend never has to know either difference exists.
 
 A lead with no email or no *approved* draft still gets a `campaign_sends` row (status `"failed"`, with a reason) rather than blocking the rest of the campaign — if a campaign looks "stuck," check `GET /api/campaigns/:id/leads` against each lead's draft status before assuming a bug.
 
@@ -127,12 +133,11 @@ A lead with no email or no *approved* draft still gets a `campaign_sends` row (s
 
 **AppNotification shape:** `{ id, kind: "reply"|"follow_up"|"conversion", title, detail, leadId, campaignId, read, createdAt }` — matches the frontend type exactly (plus `id`).
 
-There is no `GET /api/notifications/subscribe`-style push — the frontend mock's `subscribeToNotifications` (a same-tab event emitter over localStorage writes) has no server equivalent. Polling `GET /api/notifications` on an interval, or after actions likely to generate one, is the integration path until/unless a websocket or SSE channel gets added.
+There is no `GET /api/notifications/subscribe`-style push — the frontend mock's `subscribeToNotifications` (a same-tab event emitter over localStorage writes) has no server equivalent. `NotificationBell` polls `GET /api/notifications` every 20s instead (plus optimistic local state updates on read/mark-all/clear, so those feel instant). `LeadsPage` (5s) and `CampaignsPage` (8s) poll the same way, for the same reason — enrichment finishing, a status flipping, or a campaign's send stage advancing all happen server-side with no push channel. This is the integration path until/unless a websocket or SSE channel gets added.
 
 ## 8. Not built yet (don't integrate against these)
 
-- **Lead list/filter/single-fetch/delete** — see the callout in §4. This is the single biggest blocker for integration; most lead-touching pages need it.
-- **Lead discovery by niche/location is seed-mode only** — `POST /api/leads/search` throws if `SEED_MODE=false`. Only per-lead *enrichment* talks to real Apollo/Hunter; the search/discovery call itself doesn't yet.
+- **Lead discovery by niche/location is seed-mode only** — `POST /api/leads/search` throws if `SEED_MODE=false`. Only per-lead *enrichment* talks to real Apollo/Hunter; the search/discovery call itself doesn't yet. The frontend's `searchLeads()` adapter (`frontend/src/lib/api/leads.ts`) polls the job and throws if it lands in `"failed"` — `LeadImportPage` has no error UI for that path today, so a failed search just silently resets `isSearching`.
 - **Settings' stored API keys aren't live** — `PUT /api/settings/api-keys/:provider` stores the key (encrypted) and shows it as connected, but the actual Apollo/Hunter/OpenRouter/SendGrid clients still read from `.env`, not from what's saved here. Don't expect saving a key in Settings to change enrichment/generation/sending behavior.
 
 ## 9. Analytics
@@ -145,7 +150,7 @@ There is no `GET /api/notifications/subscribe`-style push — the frontend mock'
 
 Shapes match the frontend's `AnalyticsOverview`/`AnalyticsSeries`/`CampaignBreakdownRow` types in `frontend/src/types/analytics.ts` exactly — `fetchAnalyticsOverview`/`fetchAnalyticsSeries`/`fetchCampaignBreakdown` in the mock are a drop-in swap once pointed at these URLs (query params via `?dateFrom=...&dateTo=...` instead of a body object).
 
-⚠️ The series only reflects lead status changes that happened after this endpoint shipped (see `backend-build.md`'s Known gaps) — a lead that was already `replied` beforehand won't show up in the `replied` trend, only in the overview/breakdown rates.
+⚠️ The series only reflects lead status changes that happened after this endpoint shipped (see `working.md`'s Known gaps) — a lead that was already `replied` beforehand won't show up in the `replied` trend, only in the overview/breakdown rates.
 
 ## 10. Settings & integrations
 

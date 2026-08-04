@@ -7,8 +7,8 @@ import { FollowUpStep } from '../../components/campaigns/FollowUpStep'
 import { ConfirmStep } from '../../components/campaigns/ConfirmStep'
 import { Button } from '../../components/ui/Button'
 import { IconChevronLeft } from '../../components/ui/icons'
-import { DEFAULT_FOLLOW_UPS, createCampaign } from '../../lib/mock/campaigns'
-import { fetchEmailDraft } from '../../lib/mock/emailDrafts'
+import { DEFAULT_FOLLOW_UPS, createCampaign } from '../../lib/api/campaigns'
+import { fetchEmailDraft } from '../../lib/api/emailDrafts'
 import type { CampaignSchedule, FollowUpConfig } from '../../types/campaign'
 
 const STEPS = ['Select leads', 'Review emails', 'Follow-ups', 'Confirm & send']

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { fetchLeads } from '../lib/mock/leads'
-import { listCampaignSummaries } from '../lib/mock/campaigns'
+import { fetchLeads } from '../lib/api/leads'
+import { listCampaignSummaries } from '../lib/api/campaigns'
 import { FunnelSummary } from '../components/tracker/FunnelSummary'
 import { PipelineKanban } from '../components/tracker/PipelineKanban'
 import { PipelineTable } from '../components/tracker/PipelineTable'
@@ -26,7 +26,7 @@ export function TrackerPage() {
   const [openLeadId, setOpenLeadId] = useState<string | null>(null)
 
   useEffect(() => {
-    setCampaigns(listCampaignSummaries())
+    listCampaignSummaries().then(setCampaigns)
   }, [])
 
   useEffect(() => {

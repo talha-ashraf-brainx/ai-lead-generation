@@ -22,6 +22,11 @@ Body: { "email": "owner@emberline.dev", "password": "changeme123" }
 ```
 
 ## Leads
+- `GET /leads`
+- `GET /leads/:id`
+- `GET /leads/industries`
+- `POST /leads/bulk-delete`
+- `POST /leads/bulk-add-to-campaign`
 - `POST /leads/csv/preview`
 - `POST /leads/csv/import`
 - `POST /leads/search`
@@ -30,8 +35,13 @@ Body: { "email": "owner@emberline.dev", "password": "changeme123" }
 - `GET /leads/import-jobs/:id`
 
 ```
+GET http://localhost:4001/api/leads?page=1&pageSize=20&status=contacted&campaignId=none
+
 POST http://localhost:4001/api/leads/search
 Body: { "niche": "dentists", "location": "Austin, TX" }
+
+POST http://localhost:4001/api/leads/bulk-add-to-campaign
+Body: { "ids": ["123"], "campaignId": "abc" }
 ```
 
 ## Email Drafts

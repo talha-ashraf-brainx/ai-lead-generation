@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchProfile, saveProfile } from '../../lib/mock/settings'
+import { fetchProfile, saveProfile } from '../../lib/api/settings'
 import { SettingsSection } from './SettingsSection'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'

@@ -1,6 +1,6 @@
 Instructions for Claude Code working in this repository — Emberline, an AI-powered lead generation and outreach automation tool. Monorepo: `frontend/` (React, currently mock-backed) + `backend/` (Express/TypeORM, real integrations gated by `SEED_MODE`).
 
-Read first when picking up backend work: `backend-plan.md` (phase-by-phase checklist), `backend-build.md` (architecture/how it works), `dev-required.md` (manual steps only a human can do), `frontend-integration.md` (API contract for wiring the frontend to the real backend).
+Read first when picking up backend work: `backend-plan.md` (phase-by-phase checklist), `working.md` (architecture/how it works), `dev-required.md` (manual steps only a human can do), `frontend-integration.md` (API contract for wiring the frontend to the real backend).
 
 ## Rules
 
@@ -16,6 +16,6 @@ Read first when picking up backend work: `backend-plan.md` (phase-by-phase check
 
 After a change, check whether it's relevant to any of these — only edit the ones actually affected, don't touch the others:
 
-- `backend-build.md` — architecture and behavior overview
+- `working.md` — architecture and behavior overview
 - `dev-required.md` — manual steps only a human can do (DNS, dashboard config, real API keys)
 - `frontend-integration.md` — the API contract the frontend will integrate against

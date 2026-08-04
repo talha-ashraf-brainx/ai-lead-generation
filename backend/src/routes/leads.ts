@@ -4,14 +4,91 @@ import { ApiError } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { enrichLead } from "../services/enrichmentService.js";
 import { importCsvRows, previewCsv } from "../services/leadImportService.js";
+import {
+  bulkAddLeadsToCampaign,
+  bulkDeleteLeads,
+  getLead,
+  listIndustries,
+  listLeads,
+} from "../services/leadListService.js";
 import { getImportJob, startLeadSearch } from "../services/leadSearchService.js";
 import { setLeadStatus } from "../services/leadStatusService.js";
-import { LEAD_STATUSES } from "../types/lead.js";
+import { LEAD_STATUSES, type LeadStatus } from "../types/lead.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 export const leadsRouter = Router();
 leadsRouter.use(requireAuth);
+
+function parseQueryDate(value: unknown, field: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || Number.isNaN(Date.parse(value))) {
+    throw new ApiError(400, `${field} must be a valid date`);
+  }
+  return value;
+}
+
+leadsRouter.get("/", async (req, res, next) => {
+  try {
+    const { page, pageSize, search, status, industry, campaignId, createdAfter, createdBefore } = req.query;
+
+    const parsedPage = page !== undefined ? Number(page) : 1;
+    const parsedPageSize = pageSize !== undefined ? Number(pageSize) : 20;
+    if (!Number.isInteger(parsedPage) || parsedPage < 1) throw new ApiError(400, "page must be a positive integer");
+    if (!Number.isInteger(parsedPageSize) || parsedPageSize < 1) throw new ApiError(400, "pageSize must be a positive integer");
+
+    if (status !== undefined && status !== "all" && !(LEAD_STATUSES as readonly string[]).includes(status as string)) {
+      throw new ApiError(400, `status must be one of: all, ${LEAD_STATUSES.join(", ")}`);
+    }
+
+    res.json(
+      await listLeads({
+        page: parsedPage,
+        pageSize: parsedPageSize,
+        search: typeof search === "string" ? search : undefined,
+        status: status as LeadStatus | "all" | undefined,
+        industry: typeof industry === "string" ? industry : undefined,
+        campaignId: typeof campaignId === "string" ? campaignId : undefined,
+        createdAfter: parseQueryDate(createdAfter, "createdAfter"),
+        createdBefore: parseQueryDate(createdBefore, "createdBefore"),
+      }),
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+leadsRouter.get("/industries", async (_req, res, next) => {
+  try {
+    res.json(await listIndustries());
+  } catch (err) {
+    next(err);
+  }
+});
+
+leadsRouter.post("/bulk-delete", async (req, res, next) => {
+  try {
+    const { ids } = req.body ?? {};
+    if (!Array.isArray(ids) || ids.length === 0) throw new ApiError(400, "ids must be a non-empty array");
+
+    await bulkDeleteLeads(ids);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+leadsRouter.post("/bulk-add-to-campaign", async (req, res, next) => {
+  try {
+    const { ids, campaignId } = req.body ?? {};
+    if (!Array.isArray(ids) || ids.length === 0) throw new ApiError(400, "ids must be a non-empty array");
+    if (typeof campaignId !== "string" || !campaignId) throw new ApiError(400, "campaignId is required");
+
+    res.json(await bulkAddLeadsToCampaign(ids, campaignId));
+  } catch (err) {
+    next(err);
+  }
+});
 
 leadsRouter.post("/csv/preview", upload.single("file"), (req, res, next) => {
   try {
@@ -51,6 +128,14 @@ leadsRouter.post("/search", async (req, res, next) => {
 
     const job = await startLeadSearch(niche.trim(), location.trim());
     res.status(202).json({ jobId: job.id, status: job.status });
+  } catch (err) {
+    next(err);
+  }
+});
+
+leadsRouter.get("/:id", async (req, res, next) => {
+  try {
+    res.json(await getLead(req.params.id));
   } catch (err) {
     next(err);
   }

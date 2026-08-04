@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchNotificationSettings, saveNotificationSettings, testSlackWebhook } from '../../lib/mock/notifications'
+import { fetchNotificationSettings, saveNotificationSettings, testSlackWebhook } from '../../lib/api/notifications'
 import { Drawer } from '../ui/Drawer'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchLead } from '../../lib/mock/leads'
-import { buildActivityTimeline } from '../../lib/mock/activity'
+import { fetchLead } from '../../lib/api/leads'
+import { buildActivityTimeline } from '../../lib/activityTimeline'
 import { Drawer } from '../ui/Drawer'
 import { Skeleton } from '../ui/Skeleton'
 import { StatusBadge } from '../ui/StatusBadge'

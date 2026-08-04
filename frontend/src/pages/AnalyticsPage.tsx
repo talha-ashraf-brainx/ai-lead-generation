@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchAnalyticsOverview, fetchAnalyticsSeries, fetchCampaignBreakdown } from '../lib/mock/analytics'
+import { fetchAnalyticsOverview, fetchAnalyticsSeries, fetchCampaignBreakdown } from '../lib/api/analytics'
 import { StatCard } from '../components/analytics/StatCard'
 import { AnalyticsFilters, DEFAULT_ANALYTICS_FILTERS, type AnalyticsFiltersValue } from '../components/analytics/AnalyticsFilters'
 import { CampaignBreakdownTable } from '../components/analytics/CampaignBreakdownTable'
