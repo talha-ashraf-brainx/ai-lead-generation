@@ -75,11 +75,6 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="border-t border-graphite-700 px-6 py-4">
-          <p className="font-mono text-[11px] tracking-wide text-slate-500 uppercase">
-            Demo run · London dental
-          </p>
-        </div>
       </aside>
     </>
   )

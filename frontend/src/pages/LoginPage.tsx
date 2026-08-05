@@ -153,9 +153,6 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="relative text-xs text-slate-500">
-          Demo run — 20 dental clinics in London, day one.
-        </p>
       </div>
 
       <div className="flex items-center justify-center bg-graphite-900 p-8">

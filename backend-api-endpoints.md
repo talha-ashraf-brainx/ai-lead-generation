@@ -24,6 +24,7 @@ Body: { "email": "owner@emberline.dev", "password": "changeme123" }
 ## Leads
 - `GET /leads`
 - `GET /leads/:id`
+- `GET /leads/:id/activity`
 - `GET /leads/industries`
 - `POST /leads/bulk-delete`
 - `POST /leads/bulk-add-to-campaign`

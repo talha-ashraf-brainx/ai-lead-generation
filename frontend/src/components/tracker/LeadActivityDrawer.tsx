@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { fetchLead } from '../../lib/api/leads'
-import { buildActivityTimeline } from '../../lib/activityTimeline'
+import { useEffect, useState } from 'react'
+import { fetchLead, fetchLeadActivity } from '../../lib/api/leads'
 import { Drawer } from '../ui/Drawer'
 import { Skeleton } from '../ui/Skeleton'
 import { StatusBadge } from '../ui/StatusBadge'
@@ -17,6 +16,7 @@ const KIND_META: Record<ActivityEvent['kind'], { color: string }> = {
 
 export function LeadActivityDrawer({ leadId, onClose }: { leadId: string | null; onClose: () => void }) {
   const [lead, setLead] = useState<Lead | null>(null)
+  const [timeline, setTimeline] = useState<ActivityEvent[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -24,9 +24,11 @@ export function LeadActivityDrawer({ leadId, onClose }: { leadId: string | null;
     let cancelled = false
     setIsLoading(true)
     setLead(null)
-    fetchLead(leadId).then((result) => {
+    setTimeline([])
+    Promise.all([fetchLead(leadId), fetchLeadActivity(leadId)]).then(([leadResult, activityResult]) => {
       if (!cancelled) {
-        setLead(result ?? null)
+        setLead(leadResult ?? null)
+        setTimeline(activityResult)
         setIsLoading(false)
       }
     })
@@ -34,8 +36,6 @@ export function LeadActivityDrawer({ leadId, onClose }: { leadId: string | null;
       cancelled = true
     }
   }, [leadId])
-
-  const timeline = useMemo(() => (lead ? buildActivityTimeline(lead) : []), [lead])
 
   return (
     <Drawer open={leadId !== null} onClose={onClose} title={lead?.company ?? 'Lead activity'}>
@@ -54,6 +54,9 @@ export function LeadActivityDrawer({ leadId, onClose }: { leadId: string | null;
 
           <div>
             <p className="font-mono text-xs tracking-wide text-slate-400 uppercase">Activity timeline</p>
+            {timeline.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">No sends yet — nothing has gone out to this lead.</p>
+            ) : (
             <ol className="mt-3 flex flex-col gap-4">
               {timeline.map((event, index) => (
                 <li key={event.id} className="flex gap-3">
@@ -78,6 +81,7 @@ export function LeadActivityDrawer({ leadId, onClose }: { leadId: string | null;
                 </li>
               ))}
             </ol>
+            )}
           </div>
         </div>
       )}

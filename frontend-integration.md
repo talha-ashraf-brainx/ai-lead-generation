@@ -73,6 +73,7 @@ No self-serve signup exists (single account-owner app, per SRS).
 | `GET /api/leads/import-jobs/:id` | → `{ id, niche, location, status: "processing"\|"completed"\|"failed", importedCount, duplicateCount, errorCount, errorMessage, createdAt, completedAt }` |
 | `POST /api/leads/:id/enrich` | Manual (re-)enrichment → the updated `Lead` |
 | `PATCH /api/leads/:id/status` | `{ status: "contacted"\|"opened"\|"replied"\|"converted" }` → the updated `Lead`. Manual/admin-only — `"converted"` has no automated trigger, this is the only way to set it. |
+| `GET /api/leads/:id/activity` | → `ActivityEvent[]`, sorted oldest→newest: `{ id, kind: "sent"\|"opened"\|"replied"\|"follow_up"\|"converted", label, timestamp }`. Built from the lead's real `campaign_sends` rows (`sentAt`/`openedAt` per stage) plus its own `repliedAt`/`convertedAt` — not synthetic. Empty array if nothing's been sent yet. Matches the frontend's `ActivityEvent` type exactly; backs `LeadActivityDrawer`. |
 
 **Lead shape returned everywhere:** `{ id, company, contactName, email, website, industry, status, enrichment, enrichmentAttempts, enrichmentError, campaignId, campaignName, painPoint, source, createdAt }` — a superset of the frontend's `Lead` type (extra fields `enrichmentAttempts`/`enrichmentError` are safe to ignore).
 

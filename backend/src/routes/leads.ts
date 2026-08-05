@@ -3,6 +3,7 @@ import multer from "multer";
 import { ApiError } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { enrichLead } from "../services/enrichmentService.js";
+import { getLeadActivity } from "../services/leadActivityService.js";
 import { importCsvRows, previewCsv } from "../services/leadImportService.js";
 import {
   bulkAddLeadsToCampaign,
@@ -136,6 +137,14 @@ leadsRouter.post("/search", async (req, res, next) => {
 leadsRouter.get("/:id", async (req, res, next) => {
   try {
     res.json(await getLead(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+leadsRouter.get("/:id/activity", async (req, res, next) => {
+  try {
+    res.json(await getLeadActivity(req.params.id));
   } catch (err) {
     next(err);
   }

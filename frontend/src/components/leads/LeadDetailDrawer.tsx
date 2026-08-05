@@ -104,10 +104,6 @@ export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; o
               {emailDraft ? 'Review email' : 'Generate email'}
             </Button>
           </div>
-
-          <div className="rounded-md border border-dashed border-graphite-600 px-3 py-3 text-xs text-slate-500">
-            Full send/open/reply activity timeline arrives with the Lead Tracker in Phase 7.
-          </div>
         </div>
       )}
     </Drawer>

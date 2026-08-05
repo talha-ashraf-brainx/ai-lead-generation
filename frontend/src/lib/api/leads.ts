@@ -8,6 +8,7 @@ import type {
   Lead,
   LeadFiltersState,
 } from '../../types/lead'
+import type { ActivityEvent } from '../../types/activity'
 
 export const DEFAULT_LEAD_FILTERS: LeadFiltersState = {
   search: '',
@@ -44,6 +45,10 @@ export async function fetchLead(id: string): Promise<Lead | undefined> {
 
 export async function listIndustries(): Promise<string[]> {
   return apiFetch<string[]>('/api/leads/industries')
+}
+
+export async function fetchLeadActivity(leadId: string): Promise<ActivityEvent[]> {
+  return apiFetch<ActivityEvent[]>(`/api/leads/${leadId}/activity`)
 }
 
 export async function previewLeadsCsv(file: File): Promise<CsvPreview> {

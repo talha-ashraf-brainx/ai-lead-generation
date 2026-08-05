@@ -64,7 +64,7 @@ export function DangerZoneSection({ statuses, onDisconnect }: DangerZoneSectionP
         <div>
           <p className="font-display text-sm font-medium text-fog-50">Delete all data</p>
           <p className="mt-1 text-xs text-slate-400">
-            Permanently deletes every lead, campaign, email draft, and setting in this prototype.
+            Permanently deletes every lead, campaign, email draft, and setting.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
