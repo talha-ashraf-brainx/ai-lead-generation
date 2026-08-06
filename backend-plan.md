@@ -3,7 +3,7 @@
 
 Stack: Node.js (Express) + PostgreSQL + BullMQ (Redis). Built phase by phase, mirroring the frontend modules in `frontend-plan.md`.
 
-- Real integrations (Apollo/Hunter, OpenAI, SendGrid, Slack) are stubbed by `SEED_MODE` during dev so credits aren't burned.
+- Real integrations (Apollo/Hunter, OpenAI, Resend, Slack) are stubbed by `SEED_MODE` during dev so credits aren't burned.
 - Postgres/Redis run locally (Homebrew) until deploy, when a managed provider takes over (Phase 10).
 - npm workspaces monorepo, alongside `frontend/`.
 
@@ -53,10 +53,10 @@ Seed mode rotates templates instead of calling the LLM.
 ---
 
 ## Phase 5 — Sending & Follow-ups
-- [x] SendGrid client, message ID tracking per send
+- [x] Resend client, message ID tracking per send
 - [x] BullMQ + Redis queue (`emailQueue.ts`/`emailWorker.ts`, worker runs in-process for now)
 - [x] Day3/day7 follow-ups, created lazily, skipped if lead already replied/converted. Seed mode: 15s/30s instead of 3/7 days
-- [x] SendGrid Event Webhook (`POST /api/webhooks/sendgrid`) — opens/clicks/bounces, signature-verified, matched via `campaignSendId` custom arg
+- [x] Resend webhook (`POST /api/webhooks/resend`) — opens/clicks/bounces/failures, Svix-signature-verified, matched via `campaignSendId` tag
 
 `POST /api/campaigns` snapshots each lead's approved draft and queues the initial send. Verified in seed mode: send → open → day3 → day7, and reply correctly halts the sequence before day7.
 
@@ -64,16 +64,16 @@ Seed mode rotates templates instead of calling the LLM.
 
 ## Phase 6 — Reply Detection & Status
 - [x] Forward-only status ranking (contacted → opened → replied → converted); `converted` is manual-only
-- [x] Inbound Parse webhook (`POST /api/webhooks/sendgrid-inbound`), gated by `?token=` (no native signing for this webhook type)
+- [x] Inbound email webhook (`POST /api/webhooks/resend-inbound`), Svix-signature-verified (`email.received` event)
 - [x] Manual overrides: `PATCH /api/leads/:id/status`, `PATCH /api/campaigns/:id/status`
 
-Each send sets a per-send reply address so an inbound reply maps back to the exact lead. Verified: reply flips status correctly, never downgrades an already-converted lead, bad token → 401.
+Each send sets a per-send reply address so an inbound reply maps back to the exact lead. Verified: reply flips status correctly, never downgrades an already-converted lead, bad signature → 401.
 
 ---
 
 ## Phase 7 — Notifications
 - [x] Slack incoming webhook (`slackClient.ts`)
-- [x] Email alerts via Nodemailer (separate SMTP transport from SendGrid)
+- [x] Email alerts via Nodemailer (separate SMTP transport from Resend)
 - [x] Settings + in-app notifications (`notification_settings`, `notifications` tables, read/unread)
 
 `notificationService.ts` is the single place notifications get created, called from the services that own each transition. Slack fires on reply + conversion, email on reply only, follow-ups are in-app only. All external dispatch is fire-and-forget. Verified: no duplicate notifications on repeat transitions, follow-ups don't alert.

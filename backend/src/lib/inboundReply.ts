@@ -9,7 +9,7 @@ export function buildReplyToAddress(campaignSendId: string): string {
 
 const REPLY_ADDRESS_PATTERN = /reply\+([0-9a-fA-F-]{36})@/;
 
-// SendGrid Inbound Parse's `to` field can contain multiple comma-separated, display-name-
+// Resend's inbound `to` field can contain multiple comma-separated, display-name-
 // wrapped addresses — search the whole string rather than trying to parse it as RFC 5322.
 export function extractCampaignSendId(toField: string): string | null {
   const match = REPLY_ADDRESS_PATTERN.exec(toField);

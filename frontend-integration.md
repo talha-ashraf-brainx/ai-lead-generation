@@ -139,7 +139,7 @@ There is no `GET /api/notifications/subscribe`-style push — the frontend mock'
 ## 8. Not built yet (don't integrate against these)
 
 - **Lead discovery by niche/location is seed-mode only** — `POST /api/leads/search` throws if `SEED_MODE=false`. Only per-lead *enrichment* talks to real Apollo/Hunter; the search/discovery call itself doesn't yet. The frontend's `searchLeads()` adapter (`frontend/src/lib/api/leads.ts`) polls the job and throws if it lands in `"failed"` — `LeadImportPage` has no error UI for that path today, so a failed search just silently resets `isSearching`.
-- **Settings' stored API keys aren't live** — `PUT /api/settings/api-keys/:provider` stores the key (encrypted) and shows it as connected, but the actual Apollo/Hunter/OpenRouter/SendGrid clients still read from `.env`, not from what's saved here. Don't expect saving a key in Settings to change enrichment/generation/sending behavior.
+- **Settings' stored API keys aren't live** — `PUT /api/settings/api-keys/:provider` stores the key (encrypted) and shows it as connected, but the actual Apollo/Hunter/OpenRouter/Resend clients still read from `.env`, not from what's saved here. Don't expect saving a key in Settings to change enrichment/generation/sending behavior.
 
 ## 9. Analytics
 
@@ -157,7 +157,7 @@ Shapes match the frontend's `AnalyticsOverview`/`AnalyticsSeries`/`CampaignBreak
 
 | | |
 |---|---|
-| `GET /api/settings/api-keys` | → `ApiKeyStatus[]`, one per provider (`apollo`\|`hunter`\|`openai`\|`sendgrid`), always all four regardless of connection state |
+| `GET /api/settings/api-keys` | → `ApiKeyStatus[]`, one per provider (`apollo`\|`hunter`\|`openai`\|`resend`), always all four regardless of connection state |
 | `PUT /api/settings/api-keys/:provider` | `{ value: string }` → updated `ApiKeyStatus`. Upsert — creates or replaces. The raw value is never echoed back, only a masked last-4. |
 | `DELETE /api/settings/api-keys/:provider` | Disconnect → `204` |
 | `GET /api/settings/sender-identity` | → `SenderIdentity` (singleton, auto-created with defaults on first call) |
@@ -172,4 +172,4 @@ Shapes match `frontend/src/types/settings.ts` exactly, so `frontend/src/lib/mock
 
 The backend's `SEED_MODE=true` (default) fakes every external provider call but the *HTTP contract is identical* — same endpoints, same request/response shapes, same status codes. Integrate against seed mode first; flipping to real providers later (per `dev-required.md`) shouldn't require any frontend changes. Two behavioral things worth knowing while integration-testing:
 - Follow-up sends fire after 15s/30s in seed mode instead of 3/7 days — a campaign's `campaign_sends` rows will visibly progress within a dev session.
-- A simulated "open" event fires ~70% of the time a few seconds after a seed-mode send, through the same code path a real SendGrid webhook would hit — so `Lead.status` transitions to `"opened"` are observable without a real webhook.
+- A simulated "open" event fires ~70% of the time a few seconds after a seed-mode send, through the same code path a real Resend webhook would hit — so `Lead.status` transitions to `"opened"` are observable without a real webhook.

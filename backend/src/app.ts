@@ -20,7 +20,7 @@ export function createApp() {
   app.use(cors({ origin: env.corsOrigin, credentials: true }));
   app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
 
-  // Mounted before express.json() — it needs the raw body to verify SendGrid's signature.
+  // Mounted before express.json() — it needs the raw body to verify Resend's signature.
   app.use("/api/webhooks", webhooksRouter);
 
   app.use(express.json());

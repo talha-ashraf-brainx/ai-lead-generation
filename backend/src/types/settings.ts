@@ -1,4 +1,4 @@
-export const API_KEY_PROVIDERS = ["apollo", "hunter", "openai", "sendgrid"] as const;
+export const API_KEY_PROVIDERS = ["apollo", "hunter", "openai", "resend"] as const;
 export type ApiKeyProvider = (typeof API_KEY_PROVIDERS)[number];
 
 export interface ApiKeyStatus {

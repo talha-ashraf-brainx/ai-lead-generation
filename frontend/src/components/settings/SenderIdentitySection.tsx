@@ -77,7 +77,7 @@ export function SenderIdentitySection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-display text-sm font-medium text-fog-50">Use custom SMTP</p>
-                <p className="text-xs text-slate-400">Fallback if SendGrid is unavailable.</p>
+                <p className="text-xs text-slate-400">Fallback if Resend is unavailable.</p>
               </div>
               <Switch
                 checked={draft.smtpFallbackEnabled}

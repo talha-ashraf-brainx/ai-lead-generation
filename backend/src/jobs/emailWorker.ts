@@ -8,15 +8,15 @@ import { FOLLOWUP_DELAYS_MS } from "../lib/followUpSchedule.js";
 import { buildReplyToAddress } from "../lib/inboundReply.js";
 import { logger } from "../lib/logger.js";
 import { redisConnection } from "../lib/redis.js";
-import { sendEmail } from "../lib/sendgridClient.js";
+import { sendEmail } from "../lib/resendClient.js";
 import { renderTemplate } from "../lib/textUtils.js";
-import { recordSendGridEvent } from "../services/campaignSendTrackingService.js";
+import { recordTrackingEvent } from "../services/campaignSendTrackingService.js";
 import { notifyFollowUp } from "../services/notificationService.js";
 import type { SendStage } from "../types/campaign.js";
 import { EMAIL_QUEUE_NAME, enqueueSendJob } from "./emailQueue.js";
 
 // Mirrors the frontend mock's roughly-90%-open-rate feel for seed mode — real opens
-// come from the SendGrid webhook, this just exercises the same code path in dev.
+// come from the Resend webhook, this just exercises the same code path in dev.
 const SEED_OPEN_SIMULATION_RATE = 0.7;
 const SEED_OPEN_DELAY_MS = [2000, 6000] as const;
 
@@ -43,7 +43,7 @@ function simulateSeedOpen(campaignSendId: string): void {
   if (Math.random() >= SEED_OPEN_SIMULATION_RATE) return;
   const delay = SEED_OPEN_DELAY_MS[0] + Math.random() * (SEED_OPEN_DELAY_MS[1] - SEED_OPEN_DELAY_MS[0]);
   setTimeout(() => {
-    void recordSendGridEvent({ event: "open", campaignSendId }).catch((err) => {
+    void recordTrackingEvent({ type: "email.opened", campaignSendId }).catch((err) => {
       logger.error("Seed open simulation failed", { campaignSendId, error: err instanceof Error ? err.message : err });
     });
   }, delay);
@@ -108,8 +108,8 @@ async function processSend(campaignSendId: string): Promise<void> {
     } else {
       const result = await sendEmail({
         to: lead.email,
-        fromEmail: env.sendgridFromEmail,
-        fromName: env.sendgridFromName,
+        fromEmail: env.resendFromEmail,
+        fromName: env.resendFromName,
         subject: send.subject,
         text: send.body,
         replyTo: buildReplyToAddress(send.id),
@@ -118,7 +118,7 @@ async function processSend(campaignSendId: string): Promise<void> {
       messageId = result.messageId;
     }
 
-    await campaignSends().update(send.id, { status: "sent", sendgridMessageId: messageId, sentAt: new Date() });
+    await campaignSends().update(send.id, { status: "sent", resendMessageId: messageId, sentAt: new Date() });
     if (env.seedMode) simulateSeedOpen(send.id);
 
     if (send.stage === "initial") {

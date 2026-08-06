@@ -1,77 +1,86 @@
-import { EventWebhook, EventWebhookHeader } from "@sendgrid/eventwebhook";
 import express, { Router } from "express";
-import multer from "multer";
+import { Webhook } from "svix";
 import { env } from "../lib/env.js";
 import { extractCampaignSendId } from "../lib/inboundReply.js";
 import { logger } from "../lib/logger.js";
-import { applySendGridEvents, recordReply } from "../services/campaignSendTrackingService.js";
+import { recordReply, recordResendEvent, type ResendWebhookEvent } from "../services/campaignSendTrackingService.js";
 
 export const webhooksRouter = Router();
-const parseInboundFields = multer().none();
 
-// Needs the raw request body to verify SendGrid's ECDSA signature, so this route uses
-// express.raw() instead of the app-wide express.json() (mounted before it in app.ts).
-webhooksRouter.post("/sendgrid", express.raw({ type: "*/*" }), async (req, res) => {
+function svixHeaders(req: express.Request): Record<string, string> {
+  return {
+    "svix-id": req.get("svix-id") ?? "",
+    "svix-timestamp": req.get("svix-timestamp") ?? "",
+    "svix-signature": req.get("svix-signature") ?? "",
+  };
+}
+
+// Needs the raw request body to verify Resend's Svix signature, so these routes use
+// express.raw() instead of the app-wide express.json() (mounted before them in app.ts).
+webhooksRouter.post("/resend", express.raw({ type: "*/*" }), async (req, res) => {
   const payload = req.body as Buffer;
+  let event: ResendWebhookEvent;
 
-  if (env.sendgridWebhookVerificationKey) {
-    const signature = req.get(EventWebhookHeader.SIGNATURE());
-    const timestamp = req.get(EventWebhookHeader.TIMESTAMP());
-    if (!signature || !timestamp) {
-      res.status(400).json({ error: { message: "Missing SendGrid signature headers" } });
-      return;
-    }
-
-    const eventWebhook = new EventWebhook();
-    const publicKey = eventWebhook.convertPublicKeyToECDSA(env.sendgridWebhookVerificationKey);
-    if (!eventWebhook.verifySignature(publicKey, payload, signature, timestamp)) {
-      res.status(401).json({ error: { message: "Invalid SendGrid signature" } });
+  if (env.resendWebhookSecret) {
+    try {
+      event = new Webhook(env.resendWebhookSecret).verify(payload, svixHeaders(req)) as ResendWebhookEvent;
+    } catch {
+      res.status(401).json({ error: { message: "Invalid Resend signature" } });
       return;
     }
   } else {
-    logger.warn("SendGrid webhook received without signature verification (SENDGRID_WEBHOOK_VERIFICATION_KEY not set)");
+    logger.warn("Resend webhook received without signature verification (RESEND_WEBHOOK_SECRET not set)");
+    try {
+      event = JSON.parse(payload.toString("utf-8"));
+    } catch {
+      res.status(400).json({ error: { message: "Invalid JSON payload" } });
+      return;
+    }
   }
 
-  let events: unknown;
-  try {
-    events = JSON.parse(payload.toString("utf-8"));
-  } catch {
-    res.status(400).json({ error: { message: "Invalid JSON payload" } });
-    return;
-  }
-
-  if (!Array.isArray(events)) {
-    res.status(400).json({ error: { message: "Expected an array of events" } });
-    return;
-  }
-
-  await applySendGridEvents(events);
-  res.status(200).json({ received: events.length });
+  await recordResendEvent(event);
+  res.status(200).json({ received: true });
 });
 
-// SendGrid Inbound Parse — https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook.
-// No signing support like the Event Webhook above, so this route is protected by a
-// shared-secret query param instead (the SendGrid destination URL is configured with
-// it baked in, e.g. .../sendgrid-inbound?token=...).
-webhooksRouter.post("/sendgrid-inbound", parseInboundFields, async (req, res) => {
-  if (env.inboundParseSecret) {
-    if (req.query.token !== env.inboundParseSecret) {
-      res.status(401).json({ error: { message: "Invalid inbound parse token" } });
+// Resend inbound email — https://resend.com/docs/dashboard/receiving/introduction.
+// The `email.received` webhook only carries metadata (from/to/subject/etc), which is all
+// we need here: `recordReply` just flips the lead's status, it doesn't read the body.
+webhooksRouter.post("/resend-inbound", express.raw({ type: "*/*" }), async (req, res) => {
+  const payload = req.body as Buffer;
+  let event: ResendWebhookEvent;
+
+  if (env.resendInboundWebhookSecret) {
+    try {
+      event = new Webhook(env.resendInboundWebhookSecret).verify(payload, svixHeaders(req)) as ResendWebhookEvent;
+    } catch {
+      res.status(401).json({ error: { message: "Invalid Resend signature" } });
       return;
     }
   } else {
-    logger.warn("SendGrid inbound parse webhook received without a configured INBOUND_PARSE_SECRET");
+    logger.warn("Resend inbound webhook received without signature verification (RESEND_INBOUND_WEBHOOK_SECRET not set)");
+    try {
+      event = JSON.parse(payload.toString("utf-8"));
+    } catch {
+      res.status(400).json({ error: { message: "Invalid JSON payload" } });
+      return;
+    }
   }
 
-  const to = typeof req.body?.to === "string" ? req.body.to : "";
-  const campaignSendId = extractCampaignSendId(to);
+  if (event.type !== "email.received") {
+    res.status(200).json({ received: true });
+    return;
+  }
+
+  const to = event.data?.to;
+  const toField = Array.isArray(to) ? to.join(",") : typeof to === "string" ? to : "";
+  const campaignSendId = extractCampaignSendId(toField);
 
   if (campaignSendId) {
     await recordReply(campaignSendId).catch((err) => {
       logger.error("Failed to record inbound reply", { campaignSendId, error: err instanceof Error ? err.message : err });
     });
   } else {
-    logger.warn("SendGrid inbound parse webhook: no campaignSendId found in 'to' field", { to });
+    logger.warn("Resend inbound webhook: no campaignSendId found in 'to' field", { to });
   }
 
   res.status(200).json({ received: true });

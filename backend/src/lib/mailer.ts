@@ -23,7 +23,7 @@ export interface AlertEmailInput {
   text: string;
 }
 
-// Internal alert emails (e.g. "a lead replied") — distinct from SendGrid, which is
+// Internal alert emails (e.g. "a lead replied") — distinct from Resend, which is
 // only for outreach/campaign emails (Phase 5).
 export async function sendAlertEmail(input: AlertEmailInput): Promise<void> {
   const transport = getTransporter();

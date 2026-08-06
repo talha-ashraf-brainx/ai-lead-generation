@@ -1,4 +1,4 @@
-export type ApiKeyProvider = 'apollo' | 'hunter' | 'openai' | 'sendgrid'
+export type ApiKeyProvider = 'apollo' | 'hunter' | 'openai' | 'resend'
 
 export interface ApiKeyStatus {
   provider: ApiKeyProvider

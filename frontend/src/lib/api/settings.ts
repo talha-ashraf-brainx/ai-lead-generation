@@ -5,7 +5,7 @@ export const API_KEY_PROVIDERS: { id: ApiKeyProvider; label: string; hint: strin
   { id: 'apollo', label: 'Apollo.io', hint: 'Lead enrichment' },
   { id: 'hunter', label: 'Hunter.io', hint: 'Email finding (enrichment fallback)' },
   { id: 'openai', label: 'OpenAI', hint: 'AI email generation (GPT-4)' },
-  { id: 'sendgrid', label: 'SendGrid', hint: 'Email sending + open/reply tracking' },
+  { id: 'resend', label: 'Resend', hint: 'Email sending + open/reply tracking' },
 ]
 
 export async function fetchApiKeyStatuses(): Promise<ApiKeyStatus[]> {

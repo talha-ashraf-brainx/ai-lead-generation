@@ -32,15 +32,19 @@ export const env = {
   openrouterApiKey: str("OPENROUTER_API_KEY", ""),
   openrouterModel: str("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
   redisUrl: str("REDIS_URL", "redis://localhost:6379"),
-  sendgridApiKey: str("SENDGRID_API_KEY", ""),
-  sendgridFromEmail: str("SENDGRID_FROM_EMAIL", "outreach@emberline.dev"),
-  sendgridFromName: str("SENDGRID_FROM_NAME", "Emberline Outreach"),
-  sendgridWebhookVerificationKey: str("SENDGRID_WEBHOOK_VERIFICATION_KEY", ""),
-  // Reply detection — added in Phase 6 (SendGrid Inbound Parse)
+  resendApiKey: str("RESEND_API_KEY", ""),
+  // Sandboxed default — no verified domain yet, so this must stay Resend's shared
+  // onboarding@resend.dev sender. Swap for a real address once a domain is verified
+  // (Resend Dashboard > Domains); until then Resend also restricts recipients to the
+  // account's own signup email or its resend.dev test addresses (see dev-required.md).
+  resendFromEmail: str("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
+  resendFromName: str("RESEND_FROM_NAME", "Emberline Outreach"),
+  resendWebhookSecret: str("RESEND_WEBHOOK_SECRET", ""),
+  resendInboundWebhookSecret: str("RESEND_INBOUND_WEBHOOK_SECRET", ""),
+  // Reply detection — added in Phase 6 (Resend inbound email)
   inboundReplyDomain: str("INBOUND_REPLY_DOMAIN", "reply.emberline.dev"),
-  inboundParseSecret: str("INBOUND_PARSE_SECRET", ""),
   // Notifications — added in Phase 7. Nodemailer/SMTP for internal alert emails
-  // ("a lead replied") — distinct from SendGrid, which is outreach-only.
+  // ("a lead replied") — distinct from Resend, which is outreach-only.
   smtpHost: str("SMTP_HOST", ""),
   smtpPort: num("SMTP_PORT", 587),
   smtpUsername: str("SMTP_USERNAME", ""),

@@ -105,9 +105,9 @@ Body: { "value": "sk-..." }
 ```
 
 ## Webhooks
-- `POST /webhooks/sendgrid`
-- `POST /webhooks/sendgrid-inbound`
+- `POST /webhooks/resend` — delivery events (sent/delivered/bounced/opened/clicked/failed), Svix-signed
+- `POST /webhooks/resend-inbound` — inbound reply detection (`email.received`), Svix-signed
 
 ```
-POST http://localhost:4001/api/webhooks/sendgrid-inbound?token=<INBOUND_PARSE_SECRET>
+POST http://localhost:4001/api/webhooks/resend-inbound
 ```

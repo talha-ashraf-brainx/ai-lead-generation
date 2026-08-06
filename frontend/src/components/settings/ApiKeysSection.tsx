@@ -21,7 +21,7 @@ export function ApiKeysSection({ statuses, isLoading, onSave }: ApiKeysSectionPr
     apollo: '',
     hunter: '',
     openai: '',
-    sendgrid: '',
+    resend: '',
   })
   const [savingProvider, setSavingProvider] = useState<ApiKeyProvider | null>(null)
 

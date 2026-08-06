@@ -18,6 +18,7 @@ import { InitLeads1785841376000 } from "../migrations/1785841376000-InitLeads.js
 import { InitNotifications1785845000000 } from "../migrations/1785845000000-InitNotifications.js";
 import { InitSettings1785847000000 } from "../migrations/1785847000000-InitSettings.js";
 import { InitUsers1785840825000 } from "../migrations/1785840825000-InitUsers.js";
+import { RenameSendgridToResend1785848000000 } from "../migrations/1785848000000-RenameSendgridToResend.js";
 import { env } from "./env.js";
 
 export const AppDataSource = new DataSource({
@@ -44,6 +45,7 @@ export const AppDataSource = new DataSource({
     InitNotifications1785845000000,
     AddLeadStatusTimestamps1785846000000,
     InitSettings1785847000000,
+    RenameSendgridToResend1785848000000,
   ],
   synchronize: false,
   logging: env.nodeEnv === "development" ? ["error", "warn"] : ["error"],

@@ -28,7 +28,7 @@ export class CampaignSend {
   body!: string;
 
   @Column({ type: "varchar", nullable: true })
-  sendgridMessageId!: string | null;
+  resendMessageId!: string | null;
 
   @Column({ type: "timestamptz", nullable: true })
   scheduledAt!: Date | null;
