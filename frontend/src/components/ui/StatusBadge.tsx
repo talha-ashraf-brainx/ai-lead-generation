@@ -1,6 +1,6 @@
 import type { EnrichmentStatus, LeadStatus } from '../../types/lead'
 import type { EmailDraftStatus } from '../../types/email'
-import type { CampaignStatus } from '../../types/campaign'
+import type { CampaignStatus, SendStatus } from '../../types/campaign'
 import { IconCheck } from './icons'
 
 const STATUS_META: Record<LeadStatus, { label: string; color: string; glow: boolean }> = {
@@ -70,6 +70,35 @@ export function CampaignStatusBadge({ status }: { status: CampaignStatus }) {
   const meta = CAMPAIGN_META[status]
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-xs ${meta.className}`}>
+      <span className={`h-1.5 w-1.5 rounded-full bg-current ${meta.pulse ? 'animate-pulse' : ''}`} />
+      {meta.label}
+    </span>
+  )
+}
+
+// Per-send delivery outcome (initial email for a lead in a campaign) — distinct from the
+// lead's own engagement funnel, which stays "new" whether a send is still queued or has
+// failed outright. `null` covers a lead that's in the campaign but has no send row yet
+// (e.g. the queue hasn't picked it up).
+const SEND_META: Record<SendStatus | 'none', { label: string; className: string; pulse?: boolean }> = {
+  none: { label: 'Not queued', className: 'border-graphite-600 bg-graphite-800 text-slate-400' },
+  queued: { label: 'Queued', className: 'border-graphite-600 bg-graphite-800 text-slate-300', pulse: true },
+  sent: { label: 'Sent', className: 'border-temp-cold/40 bg-temp-cold/10 text-temp-cold' },
+  delivered: { label: 'Delivered', className: 'border-temp-cold/40 bg-temp-cold/10 text-temp-cold' },
+  opened: { label: 'Opened', className: 'border-temp-cool/40 bg-temp-cool/10 text-temp-cool' },
+  clicked: { label: 'Clicked', className: 'border-temp-warm/40 bg-temp-warm/10 text-temp-warm' },
+  bounced: { label: 'Bounced', className: 'border-temp-hot/40 bg-temp-hot/10 text-temp-hot' },
+  failed: { label: 'Failed', className: 'border-temp-hot/40 bg-temp-hot/10 text-temp-hot' },
+  skipped: { label: 'Skipped', className: 'border-graphite-600 bg-graphite-800 text-slate-400' },
+}
+
+export function SendStatusBadge({ status, error }: { status: SendStatus | null; error?: string | null }) {
+  const meta = SEND_META[status ?? 'none']
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-xs ${meta.className}`}
+      title={error ?? undefined}
+    >
       <span className={`h-1.5 w-1.5 rounded-full bg-current ${meta.pulse ? 'animate-pulse' : ''}`} />
       {meta.label}
     </span>

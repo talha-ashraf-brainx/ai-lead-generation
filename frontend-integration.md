@@ -46,7 +46,7 @@ Login sets an httpOnly cookie (`emberline_session`, see `AUTH_COOKIE_NAME`) — 
 | `POST /api/auth/login` | `{ email, password }` → `{ user: { id, email, name }, token }`. Sets the session cookie. `token` is also returned in the body but the cookie is what auth actually relies on. |
 | `POST /api/auth/logout` | No body → `204`. Clears the cookie. |
 | `GET /api/auth/me` | Auth required → `{ user }`. Use on app load to check session validity. |
-| `POST /api/auth/password-reset/request` | `{ email }` → `{ message, ...devFields }`. In `SEED_MODE=true`, the reset token is included in the response/logs instead of emailed — fine for dev, don't rely on that shape once seed mode is off. |
+| `POST /api/auth/password-reset/request` | `{ email }` → `{ message, ...devFields }`. In `DEBUG=true`, the reset token is included in the response (and always logged) instead of relying solely on the real email — don't rely on that shape with `DEBUG=false`. |
 | `POST /api/auth/password-reset/confirm` | `{ token, newPassword }` (min 8 chars) → `204`. |
 
 No self-serve signup exists (single account-owner app, per SRS).
@@ -66,13 +66,14 @@ No self-serve signup exists (single account-owner app, per SRS).
 | `GET /api/leads/:id` | → the `Lead`, or `404` if not found |
 | `GET /api/leads/industries` | → `string[]`, distinct industries across all leads, sorted |
 | `POST /api/leads/bulk-delete` | `{ ids: string[] }` → `204` |
-| `POST /api/leads/bulk-add-to-campaign` | `{ ids: string[], campaignId: string }` → the updated `Lead[]`. Just reassigns `campaignId`/`campaignName` — no sends are queued (that only happens via `POST /api/campaigns`, see §6). `404` if the campaign doesn't exist. |
+| `POST /api/leads/bulk-add-to-campaign` | `{ ids: string[], campaignId: string }` → the updated `Lead[]`. Reassigns `campaignId`/`campaignName`, then — per lead, if it doesn't already have an initial `campaign_sends` row for this campaign — queues one immediately via the same eligibility check `POST /api/campaigns` uses at creation (has an email → has a draft → `queued`; missing either → `failed` with a reason). `404` if the campaign doesn't exist. |
 | `POST /api/leads/csv/preview` | `multipart/form-data`, field `file` (a `.csv`) → `{ headers, missingColumns, rows: [{rowNumber, company, contactName, email, website, isValid, issues}] }` |
 | `POST /api/leads/csv/import` | `{ rows: CsvPreviewRow[] }` (the *edited* rows from the preview step) → `{ importedCount, duplicateCount, errorCount, errorDetails: [{row, reason}] }` |
-| `POST /api/leads/search` | `{ niche, location }` → `202 { jobId, status: "processing" }`. Fire-and-forget; poll the job. In `SEED_MODE=true`, returns synthetic leads with a fake email already attached. In `SEED_MODE=false`, calls Apollo People Search (`q_organization_keyword_tags`/`organization_locations`, see `apolloClient.ts`'s `searchPeopleWithApollo`) — real leads come back with `email: null` (Apollo doesn't reveal an email in search results) and get their email filled in later by the same per-lead enrichment step CSV/seed leads already go through. Throws (job lands `"failed"`) if `APOLLO_API_KEY` isn't set. |
+| `POST /api/leads/search` | `{ niche, location }` → `202 { jobId, status: "processing" }`. Fire-and-forget; poll the job. Always calls Apollo People Search (`q_organization_keyword_tags`/`organization_locations`, see `apolloClient.ts`'s `searchPeopleWithApollo`) — results come back with `email: null` (Apollo doesn't reveal an email in search results) and get their email filled in later by the per-lead enrichment step, same as CSV-imported leads. Returns 5 results in `DEBUG=true`, 25 otherwise. Throws (job lands `"failed"`) if `APOLLO_API_KEY` isn't set. |
 | `GET /api/leads/import-jobs/:id` | → `{ id, niche, location, status: "processing"\|"completed"\|"failed", importedCount, duplicateCount, errorCount, errorMessage, createdAt, completedAt }` |
 | `POST /api/leads/:id/enrich` | Manual (re-)enrichment → the updated `Lead` |
 | `PATCH /api/leads/:id/status` | `{ status: "new"\|"contacted"\|"opened"\|"replied"\|"converted" }` → the updated `Lead`. Manual/admin-only — `"converted"` has no automated trigger, this is the only way to set it. |
+| `PATCH /api/leads/:id/debug-fields` | `{ email?: string \| null, website?: string }` → the updated `Lead`. `DEBUG=false` → `404`. Lets a lead's email/website be patched in by hand when a provider fails to fill them in — `LeadDetailDrawer` shows these as editable inputs (with a Save button) only when `useDebugMode()` is true. `email: ""` is stored as `null`. |
 | `GET /api/leads/:id/activity` | → `ActivityEvent[]`, sorted oldest→newest: `{ id, kind: "sent"\|"opened"\|"replied"\|"follow_up"\|"converted", label, timestamp }`. Built from the lead's real `campaign_sends` rows (`sentAt`/`openedAt` per stage) plus its own `repliedAt`/`convertedAt` — not synthetic. Empty array if nothing's been sent yet. Matches the frontend's `ActivityEvent` type exactly; backs `LeadActivityDrawer`. |
 
 **Lead shape returned everywhere:** `{ id, company, contactName, email, website, industry, status, enrichment, enrichmentAttempts, enrichmentError, campaignId, campaignName, painPoint, source, createdAt }` — a superset of the frontend's `Lead` type (extra fields `enrichmentAttempts`/`enrichmentError` are safe to ignore).
@@ -97,16 +98,15 @@ The status funnel is `new → contacted → opened → replied → converted`. E
 | | |
 |---|---|
 | `GET /api/campaigns` | → `Campaign[]`, newest first |
-| `POST /api/campaigns` | See body shape below → `201 Campaign`. Assigns every lead's `campaignId`/`campaignName`, snapshots each lead's **approved** draft into an initial send, and starts sending immediately (or at `scheduledAt` if `schedule: "scheduled"`). |
+| `POST /api/campaigns` | See body shape below → `201 Campaign`. Creates an empty campaign (`status: "draft"`, zero leads) — no `leadIds` in the body anymore. Add leads afterward via `POST /api/leads/bulk-add-to-campaign` (§4), which is what actually queues sends. |
 | `GET /api/campaigns/:id` | → `Campaign` |
-| `GET /api/campaigns/:id/leads` | → `Lead[]` currently assigned to this campaign |
+| `GET /api/campaigns/:id/leads` | → `Lead[]` currently assigned to this campaign, each with two extra fields: `initialSendStatus: SendStatus \| null` and `initialSendError: string \| null` — the lead's own `status` is its engagement funnel (stuck on `"new"` whether a send is queued or failed outright), so these two are what `CampaignLeadsTable`'s "Send status" column actually renders. `null` status means no `campaign_sends` row exists yet for that lead. |
 | `PATCH /api/campaigns/:id/status` | `{ status: "draft"\|"sending"\|"active"\|"completed" }` → updated `Campaign`. Manual override (e.g. marking "completed"). |
 
 **`POST /api/campaigns` body:**
 ```json
 {
   "name": "string",
-  "leadIds": ["uuid", "..."],
   "schedule": "immediate | scheduled",
   "scheduledAt": "ISO string or null",
   "followUps": {
@@ -115,12 +115,13 @@ The status funnel is `new → contacted → opened → replied → converted`. E
   }
 }
 ```
+`schedule`/`scheduledAt` are stored on the campaign for later — every lead added afterward has its initial send delayed until `scheduledAt` (or sent right away if `schedule: "immediate"`), computed fresh each time a lead is added, not just once at creation.
 
 **Campaign shape returned — differs from the frontend type:** `{ id, name, status, schedule, scheduledAt, followUpDay3Enabled, followUpDay3Subject, followUpDay3Body, followUpDay7Enabled, followUpDay7Subject, followUpDay7Body, createdAt, sentAt }`. Two real differences from the frontend's `Campaign` type:
 - **No `leadIds` array on the response.** Membership is derived from `leads.campaignId`, not stored on the campaign. Call `GET /api/campaigns/:id/leads` for the member list (or ids: `.map(l => l.id)`).
 - **Follow-ups are flattened**, not nested under a `followUps: { day3, day7 }` object. An adapter function is the cleanest fix on the frontend side rather than changing every read site — see `adaptCampaign`/`adaptFollowUps` in `frontend/src/lib/api/campaigns.ts`, which also fetches `.../leads` per campaign to backfill `leadIds` so the rest of the frontend never has to know either difference exists.
 
-A lead with no email or no *approved* draft still gets a `campaign_sends` row (status `"failed"`, with a reason) rather than blocking the rest of the campaign — if a campaign looks "stuck," check `GET /api/campaigns/:id/leads` against each lead's draft status before assuming a bug.
+A lead is only ever eligible to be **added** to a campaign if it has a real email *and* an approved draft (`checkCampaignEligibility` in `campaignService.ts`) — ineligible leads aren't tagged with the campaign at all, they're rejected outright by `bulk-add-to-campaign` (§4), not silently added and left to fail at send time. `getCampaignLeads`'s member list is therefore always "who's actually reachable," not "who was selected."
 
 ## 7. Notifications
 
@@ -169,8 +170,16 @@ Shapes match the frontend's `AnalyticsOverview`/`AnalyticsSeries`/`CampaignBreak
 
 Shapes match `frontend/src/types/settings.ts` exactly, so `frontend/src/lib/mock/settings.ts`'s functions are a drop-in swap. `:provider` must be one of the four values above or the request 400s.
 
-## 11. Seed mode and integration testing
+## 11. Debug mode
 
-The backend's `SEED_MODE=true` (default) fakes every external provider call but the *HTTP contract is identical* — same endpoints, same request/response shapes, same status codes. Integrate against seed mode first; flipping to real providers later (per `dev-required.md`) shouldn't require any frontend changes. Two behavioral things worth knowing while integration-testing:
-- Follow-up sends fire after 15s/30s in seed mode instead of 3/7 days — a campaign's `campaign_sends` rows will visibly progress within a dev session.
-- A simulated "open" event fires ~70% of the time a few seconds after a seed-mode send, through the same code path a real Resend webhook would hit — so `Lead.status` transitions to `"opened"` are observable without a real webhook.
+There's no seed/fake-data mode anymore — every provider integration (Apollo, Hunter, OpenRouter, Resend, Slack/SMTP) always uses the real keys in `.env`, in both dev and prod. `DEBUG=true` (the local default) only changes a few dev/observability things, all with an identical HTTP contract either way:
+- `POST /api/leads/search` returns 5 results per search instead of 25 (`apolloClient.ts`'s `DISCOVERY_RESULTS_PER_SEARCH`) — keeps a search from burning through Apollo credits while iterating.
+- Follow-up sends fire after 15s/30s instead of 3/7 days (`followUpSchedule.ts`) — a campaign's `campaign_sends` rows visibly progress within a dev session.
+- `POST /api/auth/password-reset/request` includes `devToken` in the response (see §2) instead of relying solely on the real email landing.
+- **Every campaign send is redirected to `DEBUG_EMAIL_REDIRECT_TO`** instead of the lead's real address (`debugRecipient.ts`'s `resolveSendRecipient`). Resend refuses a real lead's address until a sending domain is verified — the API accepts the send, then fails it with "Domain is not verified" — so without this redirect no send in dev ever actually lands. It also means a dev machine can't email a real lead. The substitution is logged via `logger.warn`, so it shows up in the Debug panel rather than looking like a clean send. Never redirects when `DEBUG=false`.
+- The in-app debug log (below) actually captures anything; with `DEBUG=false` it's always empty.
+
+| | |
+|---|---|
+| `GET /api/debug/status` | Auth required → `{ enabled: boolean }`. `Topbar`'s Debug button only renders when this is `true` (`useDebugMode` hook). |
+| `GET /api/debug/log` | Auth required → `DebugLogEntry[]`, newest last: `{ id, timestamp, level: "warn"\|"error", message, meta? }`. An in-memory ring buffer (last 200 `logger.warn`/`.error` calls process-wide — rate-limit hits, provider failures, etc.) — cleared on server restart, always `[]` when `DEBUG=false`. Backs `DebugPage`, polled every 5s. |

@@ -2,7 +2,6 @@ import { AppNotification } from "../entities/AppNotification.js";
 import { Lead } from "../entities/Lead.js";
 import { NotificationSettings } from "../entities/NotificationSettings.js";
 import { AppDataSource } from "../lib/dataSource.js";
-import { env } from "../lib/env.js";
 import { logger } from "../lib/logger.js";
 import { sendAlertEmail } from "../lib/mailer.js";
 import { sendSlackAlert } from "../lib/slackClient.js";
@@ -47,11 +46,6 @@ export async function testSlackWebhook(url: string): Promise<{ success: boolean;
     return { success: false, message: "That doesn't look like a Slack webhook URL." };
   }
 
-  if (env.seedMode) {
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    return { success: true, message: "Test alert sent — check your Slack channel." };
-  }
-
   try {
     await sendSlackAlert(trimmed, ":white_check_mark: Emberline test alert — your Slack integration is connected.");
     return { success: true, message: "Test alert sent — check your Slack channel." };
@@ -87,28 +81,20 @@ async function dispatchExternalAlerts(kind: "reply" | "conversion", title: strin
   const settings = await getOrCreateSettings();
 
   if (settings.slackEnabled && settings.slackWebhookUrl) {
-    if (env.seedMode) {
-      logger.info("Seed mode: skipping real Slack alert", { title });
-    } else {
-      try {
-        await sendSlackAlert(settings.slackWebhookUrl, `*${title}*\n${detail}`);
-      } catch (err) {
-        logger.error("Slack alert failed", { error: err instanceof Error ? err.message : err });
-      }
+    try {
+      await sendSlackAlert(settings.slackWebhookUrl, `*${title}*\n${detail}`);
+    } catch (err) {
+      logger.error("Slack alert failed", { error: err instanceof Error ? err.message : err });
     }
   }
 
   // Per the frontend's own copy for this toggle ("Get an email when a lead
   // replies") — email alerts are reply-only, not sent for conversions.
   if (kind === "reply" && settings.emailAlertsEnabled) {
-    if (env.seedMode) {
-      logger.info("Seed mode: skipping real alert email", { title });
-    } else {
-      try {
-        await sendAlertEmail({ subject: title, text: detail });
-      } catch (err) {
-        logger.error("Alert email failed", { error: err instanceof Error ? err.message : err });
-      }
+    try {
+      await sendAlertEmail({ subject: title, text: detail });
+    } catch (err) {
+      logger.error("Alert email failed", { error: err instanceof Error ? err.message : err });
     }
   }
 }

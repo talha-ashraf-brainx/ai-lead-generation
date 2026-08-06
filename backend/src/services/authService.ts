@@ -54,9 +54,9 @@ export async function requestPasswordReset(email: string): Promise<{ devToken?: 
   await users().save(user);
 
   // Real delivery is wired up in the Notifications module (Phase 7). Until then, surface the
-  // token through server logs (and the API response in seed/dev mode) so the flow is testable.
+  // token through server logs (and the API response in debug mode) so the flow is testable.
   logger.info(`Password reset requested for ${user.email}`, { resetToken: token });
-  return env.seedMode ? { devToken: token } : {};
+  return env.debug ? { devToken: token } : {};
 }
 
 export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {

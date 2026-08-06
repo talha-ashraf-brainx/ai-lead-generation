@@ -2,39 +2,21 @@ import { searchPeopleWithApollo } from "../lib/apolloClient.js";
 import { Lead } from "../entities/Lead.js";
 import { LeadImportJob } from "../entities/LeadImportJob.js";
 import { AppDataSource } from "../lib/dataSource.js";
-import { env } from "../lib/env.js";
 import { logger } from "../lib/logger.js";
-import { generateSeedLeads } from "../lib/seedLeadGenerator.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { enqueueEnrichment } from "./enrichmentService.js";
 
-// Common shape between seed-mode's fabricated leads (which come with a fake email
-// already) and real Apollo discovery results (which never include an email — that's
-// only revealed later, per-lead, by the enrichment step).
-interface DiscoveredLead {
-  company: string;
-  contactName: string;
-  email: string | null;
-  website: string;
-  industry: string;
-  painPoint: string | null;
-}
-
-async function discoverLeads(niche: string, location: string): Promise<DiscoveredLead[]> {
-  if (env.seedMode) {
-    // Simulates provider latency so the "non-blocking" UX actually has something to wait for.
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    return generateSeedLeads(niche, location);
-  }
-
+// Apollo's discovery results never include an email — that's only revealed later,
+// per-lead, by the enrichment step below.
+async function discoverLeads(niche: string, location: string) {
   const people = await searchPeopleWithApollo(niche, location);
   return people.map((person) => ({
     company: person.company,
     contactName: person.contactName,
-    email: null,
+    email: null as string | null,
     website: person.website,
     industry: person.industry,
-    painPoint: null,
+    painPoint: null as string | null,
   }));
 }
 

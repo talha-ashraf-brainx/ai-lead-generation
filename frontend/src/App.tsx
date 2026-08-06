@@ -16,6 +16,7 @@ import { CampaignDetailPage } from './pages/campaigns/CampaignDetailPage'
 import { TrackerPage } from './pages/TrackerPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { DebugPage } from './pages/DebugPage'
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/tracker" element={<TrackerPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/debug" element={<DebugPage />} />
               </Route>
               <Route path="/" element={<Navigate to="/leads" replace />} />
               <Route path="*" element={<NotFoundPage />} />

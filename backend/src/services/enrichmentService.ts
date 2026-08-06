@@ -1,14 +1,9 @@
 import { Lead } from "../entities/Lead.js";
 import { AppDataSource } from "../lib/dataSource.js";
 import { enrichWithApollo, type EnrichmentResult } from "../lib/apolloClient.js";
-import { env } from "../lib/env.js";
 import { enrichWithHunter } from "../lib/hunterClient.js";
 import { logger } from "../lib/logger.js";
 import { ApiError } from "../middleware/errorHandler.js";
-
-// Mirrors the frontend mock's scheduleEnrichment() 90% success rate, so the seed-mode
-// demo flow looks the same as it will once real providers are wired up.
-const SEED_ENRICHMENT_SUCCESS_RATE = 0.9;
 
 // In-process retries for a single job run (no queue until BullMQ lands in Phase 5) —
 // covers transient provider errors without failing the lead on the first hiccup.
@@ -28,18 +23,6 @@ function domainFromWebsite(website: string | null): string | undefined {
 }
 
 async function enrichOnce(lead: Lead): Promise<EnrichmentResult> {
-  if (env.seedMode) {
-    await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 800));
-    if (Math.random() >= SEED_ENRICHMENT_SUCCESS_RATE) {
-      throw new Error("Seed enrichment provider simulated a lookup failure");
-    }
-    return {
-      contactName: lead.contactName,
-      email: lead.email ?? `${lead.contactName.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-      website: lead.website,
-    };
-  }
-
   const domain = domainFromWebsite(lead.website);
 
   try {

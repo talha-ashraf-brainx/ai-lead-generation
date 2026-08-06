@@ -1,8 +1,6 @@
 import { EmailDraft } from "../entities/EmailDraft.js";
 import { Lead } from "../entities/Lead.js";
 import { AppDataSource } from "../lib/dataSource.js";
-import { env } from "../lib/env.js";
-import { generateSeedEmailCopy } from "../lib/emailTemplateGenerator.js";
 import { logger } from "../lib/logger.js";
 import { generateEmailCopy } from "../lib/openaiClient.js";
 import { firstName } from "../lib/textUtils.js";
@@ -36,14 +34,12 @@ export async function generateEmailDraft(leadId: string): Promise<EmailDraft> {
   const lead = await leads().findOne({ where: { id: leadId } });
   if (!lead) throw new ApiError(404, "Lead not found");
 
-  const copy = env.seedMode
-    ? generateSeedEmailCopy(lead)
-    : await generateEmailCopy({
-        company: lead.company,
-        industry: lead.industry,
-        contactFirstName: firstName(lead.contactName),
-        painPoint: lead.painPoint,
-      });
+  const copy = await generateEmailCopy({
+    company: lead.company,
+    industry: lead.industry,
+    contactFirstName: firstName(lead.contactName),
+    painPoint: lead.painPoint,
+  });
 
   const repo = drafts();
   const existing = await repo.findOne({ where: { leadId } });

@@ -1,7 +1,7 @@
-import type { Lead } from '../../types/lead'
-import { StatusBadge } from '../ui/StatusBadge'
+import type { CampaignLead } from '../../lib/api/campaigns'
+import { SendStatusBadge } from '../ui/StatusBadge'
 
-export function CampaignLeadsTable({ leads }: { leads: Lead[] }) {
+export function CampaignLeadsTable({ leads }: { leads: CampaignLead[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-graphite-700">
       <table className="w-full min-w-[640px] text-left text-sm">
@@ -23,7 +23,10 @@ export function CampaignLeadsTable({ leads }: { leads: Lead[] }) {
               <td className="px-4 py-3 text-slate-300">{lead.contactName}</td>
               <td className="px-4 py-3 text-slate-300">{lead.email ?? '—'}</td>
               <td className="px-4 py-3">
-                <StatusBadge status={lead.status} />
+                <SendStatusBadge status={lead.initialSendStatus} error={lead.initialSendError} />
+                {lead.initialSendError && (
+                  <p className="mt-1 max-w-xs truncate text-xs text-slate-500">{lead.initialSendError}</p>
+                )}
               </td>
             </tr>
           ))}

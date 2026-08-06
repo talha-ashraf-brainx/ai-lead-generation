@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { fetchCampaign, fetchCampaignLeads } from '../../lib/api/campaigns'
+import { fetchCampaign, fetchCampaignLeads, type CampaignLead } from '../../lib/api/campaigns'
 import { CampaignLeadsTable } from '../../components/campaigns/CampaignLeadsTable'
 import { CampaignStatusBadge } from '../../components/ui/StatusBadge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { IconChevronLeft } from '../../components/ui/icons'
 import type { Campaign } from '../../types/campaign'
-import type { Lead, LeadStatus } from '../../types/lead'
+import type { LeadStatus } from '../../types/lead'
 
 const FUNNEL_STATUSES: LeadStatus[] = ['new', 'contacted', 'opened', 'replied', 'converted']
 
@@ -26,7 +26,7 @@ function formatDate(iso: string): string {
 export function CampaignDetailPage() {
   const { campaignId = '' } = useParams()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [leads, setLeads] = useState<Lead[]>([])
+  const [leads, setLeads] = useState<CampaignLead[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {

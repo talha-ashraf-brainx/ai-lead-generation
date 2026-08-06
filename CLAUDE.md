@@ -1,4 +1,4 @@
-Instructions for Claude Code working in this repository — Emberline, an AI-powered lead generation and outreach automation tool. Monorepo: `frontend/` (React, currently mock-backed) + `backend/` (Express/TypeORM, real integrations gated by `SEED_MODE`).
+Instructions for Claude Code working in this repository — Emberline, an AI-powered lead generation and outreach automation tool. Monorepo: `frontend/` (React, currently mock-backed) + `backend/` (Express/TypeORM; every provider integration always uses real keys — `DEBUG` only controls dev/observability behavior, see `frontend-integration.md` §11).
 
 Read first when picking up backend work: `backend-plan.md` (phase-by-phase checklist), `working.md` (architecture/how it works), `dev-required.md` (manual steps only a human can do), `frontend-integration.md` (API contract for wiring the frontend to the real backend).
 

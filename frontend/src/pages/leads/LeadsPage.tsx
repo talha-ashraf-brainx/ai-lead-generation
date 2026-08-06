@@ -127,7 +127,13 @@ export function LeadsPage() {
   async function handleAddToCampaign(campaignId: string) {
     setIsBulkBusy(true)
     try {
-      await bulkAddToCampaign(Array.from(selectedIds), campaignId)
+      const result = await bulkAddToCampaign(Array.from(selectedIds), campaignId)
+      if (result.skipped.length > 0) {
+        const lines = result.skipped.map((lead) => `${lead.company}: ${lead.reason}`).join('\n')
+        alert(
+          `${result.added.length} lead${result.added.length === 1 ? '' : 's'} added.\n${result.skipped.length} skipped:\n${lines}`,
+        )
+      }
       setSelectedIds(new Set())
       isBackgroundRefresh.current = true
       setRefreshTick((tick) => tick + 1)

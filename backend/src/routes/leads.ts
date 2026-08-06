@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import { env } from "../lib/env.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { enrichLead } from "../services/enrichmentService.js";
@@ -11,6 +12,7 @@ import {
   getLead,
   listIndustries,
   listLeads,
+  updateLeadDebugFields,
 } from "../services/leadListService.js";
 import { getImportJob, startLeadSearch } from "../services/leadSearchService.js";
 import { setLeadStatus } from "../services/leadStatusService.js";
@@ -154,6 +156,24 @@ leadsRouter.post("/:id/enrich", async (req, res, next) => {
   try {
     const lead = await enrichLead(req.params.id);
     res.json(lead);
+  } catch (err) {
+    next(err);
+  }
+});
+
+leadsRouter.patch("/:id/debug-fields", async (req, res, next) => {
+  try {
+    if (!env.debug) throw new ApiError(404, "Not found");
+
+    const { email, website } = req.body ?? {};
+    if (email !== undefined && email !== null && typeof email !== "string") {
+      throw new ApiError(400, "email must be a string or null");
+    }
+    if (website !== undefined && typeof website !== "string") {
+      throw new ApiError(400, "website must be a string");
+    }
+
+    res.json(await updateLeadDebugFields(req.params.id, { email, website }));
   } catch (err) {
     next(err);
   }

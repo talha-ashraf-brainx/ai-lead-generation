@@ -23,7 +23,6 @@ export interface FollowUpConfigInput {
 
 export interface CreateCampaignInput {
   name: string;
-  leadIds: string[];
   schedule: CampaignSchedule;
   scheduledAt: string | null;
   followUps: FollowUpConfigInput;

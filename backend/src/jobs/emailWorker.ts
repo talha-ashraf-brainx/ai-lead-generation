@@ -3,6 +3,7 @@ import { Campaign } from "../entities/Campaign.js";
 import { CampaignSend } from "../entities/CampaignSend.js";
 import { Lead } from "../entities/Lead.js";
 import { AppDataSource } from "../lib/dataSource.js";
+import { resolveSendRecipient } from "../lib/debugRecipient.js";
 import { env } from "../lib/env.js";
 import { FOLLOWUP_DELAYS_MS } from "../lib/followUpSchedule.js";
 import { buildReplyToAddress } from "../lib/inboundReply.js";
@@ -10,15 +11,10 @@ import { logger } from "../lib/logger.js";
 import { redisConnection } from "../lib/redis.js";
 import { sendEmail } from "../lib/resendClient.js";
 import { renderTemplate } from "../lib/textUtils.js";
-import { advanceLeadStatus, recordTrackingEvent } from "../services/campaignSendTrackingService.js";
+import { advanceLeadStatus } from "../services/campaignSendTrackingService.js";
 import { notifyFollowUp } from "../services/notificationService.js";
 import type { SendStage } from "../types/campaign.js";
 import { EMAIL_QUEUE_NAME, enqueueSendJob } from "./emailQueue.js";
-
-// Mirrors the frontend mock's roughly-90%-open-rate feel for seed mode — real opens
-// come from the Resend webhook, this just exercises the same code path in dev.
-const SEED_OPEN_SIMULATION_RATE = 0.7;
-const SEED_OPEN_DELAY_MS = [2000, 6000] as const;
 
 function campaigns() {
   return AppDataSource.getRepository(Campaign);
@@ -37,16 +33,6 @@ async function markCampaignActiveIfSettled(campaignId: string): Promise<void> {
   if (stillQueued === 0) {
     await campaigns().update(campaignId, { status: "active", sentAt: new Date() });
   }
-}
-
-function simulateSeedOpen(campaignSendId: string): void {
-  if (Math.random() >= SEED_OPEN_SIMULATION_RATE) return;
-  const delay = SEED_OPEN_DELAY_MS[0] + Math.random() * (SEED_OPEN_DELAY_MS[1] - SEED_OPEN_DELAY_MS[0]);
-  setTimeout(() => {
-    void recordTrackingEvent({ type: "email.opened", campaignSendId }).catch((err) => {
-      logger.error("Seed open simulation failed", { campaignSendId, error: err instanceof Error ? err.message : err });
-    });
-  }, delay);
 }
 
 async function scheduleNextStage(campaignId: string, leadId: string, stage: Extract<SendStage, "day3" | "day7">): Promise<void> {
@@ -101,25 +87,31 @@ async function processSend(campaignSendId: string): Promise<void> {
   }
 
   try {
-    let messageId: string;
-    if (env.seedMode) {
-      await new Promise((resolve) => setTimeout(resolve, 400 + Math.random() * 400));
-      messageId = `seed-${send.id}`;
-    } else {
-      const result = await sendEmail({
-        to: lead.email,
-        fromEmail: env.resendFromEmail,
-        fromName: env.resendFromName,
-        subject: send.subject,
-        text: send.body,
-        replyTo: buildReplyToAddress(send.id),
-        customArgs: { campaignSendId: send.id },
+    const recipient = resolveSendRecipient(lead.email, {
+      debug: env.debug,
+      redirectTo: env.debugEmailRedirectTo,
+    });
+    if (recipient.redirectedFrom) {
+      // logger.warn (not .info) so the substitution is visible in the in-app Debug panel,
+      // which only captures warn/error — a silent redirect would look like a real send.
+      logger.warn("Debug mode: send redirected away from the real lead", {
+        sendId: send.id,
+        intendedTo: recipient.redirectedFrom,
+        sentTo: recipient.to,
       });
-      messageId = result.messageId;
     }
 
-    await campaignSends().update(send.id, { status: "sent", resendMessageId: messageId, sentAt: new Date() });
-    if (env.seedMode) simulateSeedOpen(send.id);
+    const result = await sendEmail({
+      to: recipient.to,
+      fromEmail: env.resendFromEmail,
+      fromName: env.resendFromName,
+      subject: send.subject,
+      text: send.body,
+      replyTo: buildReplyToAddress(send.id),
+      customArgs: { campaignSendId: send.id },
+    });
+
+    await campaignSends().update(send.id, { status: "sent", resendMessageId: result.messageId, sentAt: new Date() });
 
     if (send.stage === "initial") {
       await advanceLeadStatus(lead.id, "contacted");

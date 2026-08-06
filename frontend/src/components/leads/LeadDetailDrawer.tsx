@@ -2,13 +2,14 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Lead } from '../../types/lead'
 import type { EmailDraft } from '../../types/email'
-import { fetchLead } from '../../lib/api/leads'
+import { fetchLead, updateLeadDebugFields } from '../../lib/api/leads'
 import { fetchEmailDraft } from '../../lib/api/emailDrafts'
+import { useDebugMode } from '../../hooks/useDebugMode'
 import { Drawer } from '../ui/Drawer'
 import { Button } from '../ui/Button'
 import { Skeleton } from '../ui/Skeleton'
 import { EmailDraftBadge, EnrichmentBadge, StatusBadge } from '../ui/StatusBadge'
-import { IconExternalLink, IconMail } from '../ui/icons'
+import { IconBug, IconCheck, IconExternalLink, IconMail } from '../ui/icons'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -16,9 +17,14 @@ function formatDate(iso: string): string {
 
 export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; onClose: () => void }) {
   const navigate = useNavigate()
+  const debugEnabled = useDebugMode()
   const [lead, setLead] = useState<Lead | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [emailDraft, setEmailDraft] = useState<EmailDraft | null>(null)
+  const [emailInput, setEmailInput] = useState('')
+  const [websiteInput, setWebsiteInput] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
 
   useEffect(() => {
     if (!leadId) return
@@ -29,6 +35,8 @@ export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; o
     fetchLead(leadId).then((result) => {
       if (!cancelled) {
         setLead(result ?? null)
+        setEmailInput(result?.email ?? '')
+        setWebsiteInput(result?.website ?? '')
         setIsLoading(false)
       }
     })
@@ -39,6 +47,23 @@ export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; o
       cancelled = true
     }
   }, [leadId])
+
+  const hasUnsavedChanges = lead !== null && (emailInput !== (lead.email ?? '') || websiteInput !== lead.website)
+
+  async function handleSaveDebugFields() {
+    if (!leadId) return
+    setIsSaving(true)
+    try {
+      const updated = await updateLeadDebugFields(leadId, { email: emailInput, website: websiteInput })
+      setLead(updated)
+      setEmailInput(updated.email ?? '')
+      setWebsiteInput(updated.website)
+      setJustSaved(true)
+      setTimeout(() => setJustSaved(false), 2000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <Drawer open={leadId !== null} onClose={onClose} title={lead?.company ?? 'Lead detail'}>
@@ -58,9 +83,27 @@ export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; o
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Contact">{lead.contactName}</Field>
             <Field label="Industry">{lead.industry}</Field>
-            <Field label="Email">{lead.email ?? '—'}</Field>
+            <Field label="Email">
+              {debugEnabled ? (
+                <input
+                  value={emailInput}
+                  onChange={(event) => setEmailInput(event.target.value)}
+                  placeholder="No email"
+                  className="w-full rounded-md border border-graphite-600 bg-graphite-900 px-2.5 py-1.5 text-sm text-fog-50 outline-none transition-colors focus:border-primary"
+                />
+              ) : (
+                lead.email ?? '—'
+              )}
+            </Field>
             <Field label="Website">
-              {lead.website ? (
+              {debugEnabled ? (
+                <input
+                  value={websiteInput}
+                  onChange={(event) => setWebsiteInput(event.target.value)}
+                  placeholder="No website"
+                  className="w-full rounded-md border border-graphite-600 bg-graphite-900 px-2.5 py-1.5 text-sm text-fog-50 outline-none transition-colors focus:border-primary"
+                />
+              ) : lead.website ? (
                 <a
                   href={lead.website}
                   target="_blank"
@@ -78,6 +121,23 @@ export function LeadDetailDrawer({ leadId, onClose }: { leadId: string | null; o
             <Field label="Source">{lead.source === 'csv' ? 'CSV import' : 'Keyword search'}</Field>
             <Field label="Added">{formatDate(lead.createdAt)}</Field>
           </dl>
+
+          {debugEnabled && (
+            <div className="flex items-center gap-3 rounded-md border border-temp-warm/40 bg-temp-warm/10 px-3 py-2.5">
+              <IconBug className="h-4 w-4 shrink-0 text-temp-warm" />
+              <p className="flex-1 text-xs text-slate-300">Debug mode — edit email/website by hand, bypassing enrichment.</p>
+              <Button variant="ghost" onClick={handleSaveDebugFields} disabled={!hasUnsavedChanges || isSaving} className="gap-1.5">
+                {justSaved ? (
+                  <>
+                    <IconCheck className="h-4 w-4" />
+                    Saved
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
+          )}
 
           {lead.painPoint && (
             <div>

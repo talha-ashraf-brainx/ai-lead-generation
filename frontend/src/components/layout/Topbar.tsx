@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '../../hooks/useAuth'
 import { useClickOutside } from '../../hooks/useClickOutside'
+import { useDebugMode } from '../../hooks/useDebugMode'
 import { popIn } from '../../lib/motion'
 import { Button } from '../ui/Button'
 import { NotificationBell } from '../notifications/NotificationBell'
-import { IconChevronDown, IconLogout, IconMenu } from '../ui/icons'
+import { IconBug, IconChevronDown, IconLogout, IconMenu } from '../ui/icons'
 
 const PAGE_TITLES: Record<string, string> = {
   '/leads': 'Leads',
@@ -15,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/tracker': 'Lead Tracker',
   '/analytics': 'Analytics',
   '/settings': 'Settings',
+  '/debug': 'Debug',
 }
 
 function pageTitleFor(pathname: string): string {
@@ -26,6 +28,7 @@ function pageTitleFor(pathname: string): string {
 export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const debugEnabled = useDebugMode()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -57,6 +60,15 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
       </h1>
 
       <div className="ml-auto flex items-center gap-2">
+        {debugEnabled && (
+          <Link to="/debug">
+            <Button variant="ghost" className="gap-1.5 border-temp-warm/40 text-temp-warm hover:bg-temp-warm/10">
+              <IconBug className="h-4 w-4" />
+              Debug
+            </Button>
+          </Link>
+        )}
+
         <NotificationBell />
 
         <div className="relative" ref={menuRef}>

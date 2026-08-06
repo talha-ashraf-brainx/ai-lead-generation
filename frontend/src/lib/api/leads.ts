@@ -89,8 +89,13 @@ export async function searchLeads(niche: string, location: string): Promise<Impo
   }
 }
 
-export async function bulkAddToCampaign(ids: string[], campaignId: string): Promise<void> {
-  await apiFetch('/api/leads/bulk-add-to-campaign', {
+export interface BulkAddToCampaignResult {
+  added: Lead[]
+  skipped: { id: string; company: string; reason: string }[]
+}
+
+export async function bulkAddToCampaign(ids: string[], campaignId: string): Promise<BulkAddToCampaignResult> {
+  return apiFetch('/api/leads/bulk-add-to-campaign', {
     method: 'POST',
     body: JSON.stringify({ ids, campaignId }),
   })
@@ -100,5 +105,12 @@ export async function bulkDeleteLeads(ids: string[]): Promise<void> {
   await apiFetch('/api/leads/bulk-delete', {
     method: 'POST',
     body: JSON.stringify({ ids }),
+  })
+}
+
+export async function updateLeadDebugFields(id: string, fields: { email?: string | null; website?: string }): Promise<Lead> {
+  return apiFetch<Lead>(`/api/leads/${id}/debug-fields`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
   })
 }

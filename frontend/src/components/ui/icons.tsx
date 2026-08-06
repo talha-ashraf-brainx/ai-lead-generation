@@ -305,3 +305,13 @@ export function IconEyeOff(props: IconProps) {
     </svg>
   )
 }
+
+export function IconBug(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="8" y="8.5" width="8" height="9.5" rx="4" />
+      <path d="M9.5 8.5V6.5a2.5 2.5 0 0 1 5 0v2" />
+      <path d="M8 12H4.5M8 15.5H4.5M16 12h3.5M16 15.5h3.5M10 6l-1.7-1.7M14 6l1.7-1.7" />
+    </svg>
+  )
+}

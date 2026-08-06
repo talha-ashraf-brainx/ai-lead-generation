@@ -1,5 +1,6 @@
 export type CampaignStatus = 'draft' | 'sending' | 'active' | 'completed'
 export type CampaignSchedule = 'immediate' | 'scheduled'
+export type SendStatus = 'queued' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed' | 'skipped'
 
 export interface FollowUpStep {
   enabled: boolean
@@ -31,7 +32,6 @@ export interface CampaignSummary {
 
 export interface CreateCampaignInput {
   name: string
-  leadIds: string[]
   schedule: CampaignSchedule
   scheduledAt: string | null
   followUps: FollowUpConfig

@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { authRouter } from "./routes/auth.js";
 import { campaignsRouter } from "./routes/campaigns.js";
+import { debugRouter } from "./routes/debug.js";
 import { emailDraftsRouter } from "./routes/emailDrafts.js";
 import { healthRouter } from "./routes/health.js";
 import { leadsRouter } from "./routes/leads.js";
@@ -34,6 +35,7 @@ export function createApp() {
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/settings", settingsRouter);
+  app.use("/api/debug", debugRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

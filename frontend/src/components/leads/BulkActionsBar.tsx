@@ -23,7 +23,7 @@ export function BulkActionsBar({
   onDelete,
   onClear,
 }: BulkActionsBarProps) {
-  const [campaignId, setCampaignId] = useState(campaignOptions[0]?.id ?? '')
+  const [campaignId, setCampaignId] = useState('')
   const selectedCampaign = campaignOptions.find((option) => option.id === campaignId)
 
   return (
@@ -33,6 +33,9 @@ export function BulkActionsBar({
       <div className="flex items-center gap-2">
         <div className="w-48">
           <Select value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>
+            <option value="" disabled>
+              Select a campaign
+            </option>
             {campaignOptions.map((campaign) => (
               <option key={campaign.id} value={campaign.id}>
                 {campaign.name}

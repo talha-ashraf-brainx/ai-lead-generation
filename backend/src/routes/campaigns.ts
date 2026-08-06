@@ -17,9 +17,8 @@ campaignsRouter.get("/", async (_req, res, next) => {
 
 campaignsRouter.post("/", async (req, res, next) => {
   try {
-    const { name, leadIds, schedule, scheduledAt, followUps } = req.body ?? {};
+    const { name, schedule, scheduledAt, followUps } = req.body ?? {};
     if (typeof name !== "string" || !name.trim()) throw new ApiError(400, "Campaign name is required");
-    if (!Array.isArray(leadIds) || leadIds.length === 0) throw new ApiError(400, "Select at least one lead");
     if (schedule !== "immediate" && schedule !== "scheduled") {
       throw new ApiError(400, "schedule must be 'immediate' or 'scheduled'");
     }
@@ -29,7 +28,6 @@ campaignsRouter.post("/", async (req, res, next) => {
 
     const campaign = await createCampaign({
       name: name.trim(),
-      leadIds,
       schedule,
       scheduledAt: scheduledAt ?? null,
       followUps,

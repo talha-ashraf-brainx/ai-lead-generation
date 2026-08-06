@@ -17,7 +17,10 @@ export const env = {
   nodeEnv: str("NODE_ENV", "development"),
   port: num("PORT", 4000),
   databaseUrl: str("DATABASE_URL", "postgresql://localhost:5432/emberline"),
-  seedMode: str("SEED_MODE", "true") === "true",
+  // Controls dev/observability behavior only (search result volume, follow-up timing,
+  // the dev-only password-reset token, the in-memory debug log) — every provider
+  // integration always uses real keys regardless of this flag.
+  debug: str("DEBUG", "false") === "true",
   corsOrigin: str("CORS_ORIGIN", "http://localhost:5173"),
   jwtSecret: str("JWT_SECRET", INSECURE_DEV_JWT_SECRET),
   jwtExpiresIn: str("JWT_EXPIRES_IN", "7d"),
@@ -41,8 +44,15 @@ export const env = {
   resendFromName: str("RESEND_FROM_NAME", "Emberline Outreach"),
   resendWebhookSecret: str("RESEND_WEBHOOK_SECRET", ""),
   resendInboundWebhookSecret: str("RESEND_INBOUND_WEBHOOK_SECRET", ""),
-  // Reply detection — added in Phase 6 (Resend inbound email)
-  inboundReplyDomain: str("INBOUND_REPLY_DOMAIN", "reply.emberline.dev"),
+  // Debug-mode-only send redirect. Resend rejects real lead addresses until a sending
+  // domain is verified, so in debug mode every send goes here instead. Defaults to
+  // Resend's always-deliverable test sink; set it to your Resend signup email to
+  // actually read the emails. Ignored entirely when DEBUG=false.
+  debugEmailRedirectTo: str("DEBUG_EMAIL_REDIRECT_TO", "delivered@resend.dev"),
+  // Reply detection — added in Phase 6 (Resend inbound email). No default: a made-up
+  // domain here would put an unresolvable Reply-To on every outbound send. Blank means
+  // sends carry no Reply-To and reply detection is off (see dev-required.md).
+  inboundReplyDomain: str("INBOUND_REPLY_DOMAIN", ""),
   // Notifications — added in Phase 7. Nodemailer/SMTP for internal alert emails
   // ("a lead replied") — distinct from Resend, which is outreach-only.
   smtpHost: str("SMTP_HOST", ""),

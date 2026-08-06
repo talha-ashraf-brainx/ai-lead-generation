@@ -1,6 +1,11 @@
 import { apiFetch, isNotFound } from './client'
 import type { Lead } from '../../types/lead'
-import type { Campaign, CampaignSummary, CreateCampaignInput, FollowUpConfig } from '../../types/campaign'
+import type { Campaign, CampaignSummary, CreateCampaignInput, FollowUpConfig, SendStatus } from '../../types/campaign'
+
+export interface CampaignLead extends Lead {
+  initialSendStatus: SendStatus | null
+  initialSendError: string | null
+}
 
 export const DEFAULT_FOLLOW_UPS: FollowUpConfig = {
   day3: {
@@ -68,8 +73,8 @@ export async function fetchCampaign(id: string): Promise<Campaign | undefined> {
   }
 }
 
-export async function fetchCampaignLeads(campaignId: string): Promise<Lead[]> {
-  return apiFetch<Lead[]>(`/api/campaigns/${campaignId}/leads`)
+export async function fetchCampaignLeads(campaignId: string): Promise<CampaignLead[]> {
+  return apiFetch<CampaignLead[]>(`/api/campaigns/${campaignId}/leads`)
 }
 
 export async function listCampaignSummaries(): Promise<CampaignSummary[]> {
@@ -82,7 +87,6 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
     method: 'POST',
     body: JSON.stringify({
       name: input.name,
-      leadIds: input.leadIds,
       schedule: input.schedule,
       scheduledAt: input.scheduledAt,
       followUps: input.followUps,

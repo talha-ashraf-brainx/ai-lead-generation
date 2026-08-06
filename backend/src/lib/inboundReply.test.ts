@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { extractCampaignSendId } from "./inboundReply.js";
+import { buildReplyToAddress, extractCampaignSendId } from "./inboundReply.js";
 
 const ID = "af9c01d5-a279-4d2f-aaad-c126e1422419";
+
+describe("buildReplyToAddress", () => {
+  // Guards the fix for outbound sends carrying a Reply-To on a domain that doesn't
+  // resolve — with no INBOUND_REPLY_DOMAIN configured there must be no header at all.
+  it("returns undefined when no inbound reply domain is configured", () => {
+    expect(buildReplyToAddress(ID)).toBeUndefined();
+  });
+});
 
 describe("extractCampaignSendId", () => {
   it("extracts the id from a bare address", () => {
