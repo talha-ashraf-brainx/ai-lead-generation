@@ -21,7 +21,7 @@ export class Lead {
   @Column({ type: "varchar" })
   industry!: string;
 
-  @Column({ type: "enum", enum: LEAD_STATUSES, default: "contacted" })
+  @Column({ type: "enum", enum: LEAD_STATUSES, default: "new" })
   status!: LeadStatus;
 
   // Set once, the first time the lead reaches that status — feeds the Analytics

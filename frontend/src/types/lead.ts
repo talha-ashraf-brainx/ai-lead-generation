@@ -1,4 +1,4 @@
-export type LeadStatus = 'contacted' | 'opened' | 'replied' | 'converted'
+export type LeadStatus = 'new' | 'contacted' | 'opened' | 'replied' | 'converted'
 export type EnrichmentStatus = 'pending' | 'enriched' | 'failed'
 export type LeadSource = 'csv' | 'search'
 

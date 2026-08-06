@@ -69,13 +69,15 @@ No self-serve signup exists (single account-owner app, per SRS).
 | `POST /api/leads/bulk-add-to-campaign` | `{ ids: string[], campaignId: string }` → the updated `Lead[]`. Just reassigns `campaignId`/`campaignName` — no sends are queued (that only happens via `POST /api/campaigns`, see §6). `404` if the campaign doesn't exist. |
 | `POST /api/leads/csv/preview` | `multipart/form-data`, field `file` (a `.csv`) → `{ headers, missingColumns, rows: [{rowNumber, company, contactName, email, website, isValid, issues}] }` |
 | `POST /api/leads/csv/import` | `{ rows: CsvPreviewRow[] }` (the *edited* rows from the preview step) → `{ importedCount, duplicateCount, errorCount, errorDetails: [{row, reason}] }` |
-| `POST /api/leads/search` | `{ niche, location }` → `202 { jobId, status: "processing" }`. Fire-and-forget; poll the job. |
+| `POST /api/leads/search` | `{ niche, location }` → `202 { jobId, status: "processing" }`. Fire-and-forget; poll the job. In `SEED_MODE=true`, returns synthetic leads with a fake email already attached. In `SEED_MODE=false`, calls Apollo People Search (`q_organization_keyword_tags`/`organization_locations`, see `apolloClient.ts`'s `searchPeopleWithApollo`) — real leads come back with `email: null` (Apollo doesn't reveal an email in search results) and get their email filled in later by the same per-lead enrichment step CSV/seed leads already go through. Throws (job lands `"failed"`) if `APOLLO_API_KEY` isn't set. |
 | `GET /api/leads/import-jobs/:id` | → `{ id, niche, location, status: "processing"\|"completed"\|"failed", importedCount, duplicateCount, errorCount, errorMessage, createdAt, completedAt }` |
 | `POST /api/leads/:id/enrich` | Manual (re-)enrichment → the updated `Lead` |
-| `PATCH /api/leads/:id/status` | `{ status: "contacted"\|"opened"\|"replied"\|"converted" }` → the updated `Lead`. Manual/admin-only — `"converted"` has no automated trigger, this is the only way to set it. |
+| `PATCH /api/leads/:id/status` | `{ status: "new"\|"contacted"\|"opened"\|"replied"\|"converted" }` → the updated `Lead`. Manual/admin-only — `"converted"` has no automated trigger, this is the only way to set it. |
 | `GET /api/leads/:id/activity` | → `ActivityEvent[]`, sorted oldest→newest: `{ id, kind: "sent"\|"opened"\|"replied"\|"follow_up"\|"converted", label, timestamp }`. Built from the lead's real `campaign_sends` rows (`sentAt`/`openedAt` per stage) plus its own `repliedAt`/`convertedAt` — not synthetic. Empty array if nothing's been sent yet. Matches the frontend's `ActivityEvent` type exactly; backs `LeadActivityDrawer`. |
 
 **Lead shape returned everywhere:** `{ id, company, contactName, email, website, industry, status, enrichment, enrichmentAttempts, enrichmentError, campaignId, campaignName, painPoint, source, createdAt }` — a superset of the frontend's `Lead` type (extra fields `enrichmentAttempts`/`enrichmentError` are safe to ignore).
+
+The status funnel is `new → contacted → opened → replied → converted`. Every freshly sourced lead (search or CSV) now starts at `"new"` — `"contacted"` is only set once a campaign's initial send actually succeeds (`emailWorker.ts`'s `processSend`), not at creation. This replaced the old behavior where every lead defaulted to `"contacted"` immediately, which made a lead nobody had emailed yet indistinguishable from one that had.
 
 `GET /api/leads`, `GET /api/leads/:id`, `POST /api/leads/bulk-delete`, and `POST /api/leads/bulk-add-to-campaign` didn't exist when this doc was first written (they blocked `LeadsPage`/`TrackerPage`/`LeadDetailDrawer`/`LeadActivityDrawer` integration) — added alongside the frontend integration work itself, once it became clear they were a hard prerequisite rather than optional. There's still no push channel for background changes (enrichment completing, a status flipping) — see §11's polling note, now implemented as a 5s poll in `LeadsPage`.
 
@@ -138,7 +140,6 @@ There is no `GET /api/notifications/subscribe`-style push — the frontend mock'
 
 ## 8. Not built yet (don't integrate against these)
 
-- **Lead discovery by niche/location is seed-mode only** — `POST /api/leads/search` throws if `SEED_MODE=false`. Only per-lead *enrichment* talks to real Apollo/Hunter; the search/discovery call itself doesn't yet. The frontend's `searchLeads()` adapter (`frontend/src/lib/api/leads.ts`) polls the job and throws if it lands in `"failed"` — `LeadImportPage` has no error UI for that path today, so a failed search just silently resets `isSearching`.
 - **Settings' stored API keys aren't live** — `PUT /api/settings/api-keys/:provider` stores the key (encrypted) and shows it as connected, but the actual Apollo/Hunter/OpenRouter/Resend clients still read from `.env`, not from what's saved here. Don't expect saving a key in Settings to change enrichment/generation/sending behavior.
 
 ## 9. Analytics

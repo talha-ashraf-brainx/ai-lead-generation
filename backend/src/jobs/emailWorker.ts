@@ -10,7 +10,7 @@ import { logger } from "../lib/logger.js";
 import { redisConnection } from "../lib/redis.js";
 import { sendEmail } from "../lib/resendClient.js";
 import { renderTemplate } from "../lib/textUtils.js";
-import { recordTrackingEvent } from "../services/campaignSendTrackingService.js";
+import { advanceLeadStatus, recordTrackingEvent } from "../services/campaignSendTrackingService.js";
 import { notifyFollowUp } from "../services/notificationService.js";
 import type { SendStage } from "../types/campaign.js";
 import { EMAIL_QUEUE_NAME, enqueueSendJob } from "./emailQueue.js";
@@ -122,6 +122,7 @@ async function processSend(campaignSendId: string): Promise<void> {
     if (env.seedMode) simulateSeedOpen(send.id);
 
     if (send.stage === "initial") {
+      await advanceLeadStatus(lead.id, "contacted");
       await markCampaignActiveIfSettled(send.campaignId);
       await scheduleNextStage(send.campaignId, lead.id, "day3");
     } else {

@@ -2,6 +2,7 @@ import type { Lead, LeadStatus } from '../../types/lead'
 import { Skeleton } from '../ui/Skeleton'
 
 const COLUMNS: { status: LeadStatus; label: string; color: string }[] = [
+  { status: 'new', label: 'New', color: 'var(--color-slate-500)' },
   { status: 'contacted', label: 'Contacted', color: 'var(--color-temp-cold)' },
   { status: 'opened', label: 'Opened', color: 'var(--color-temp-cool)' },
   { status: 'replied', label: 'Replied', color: 'var(--color-temp-warm)' },

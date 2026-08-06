@@ -5,6 +5,7 @@ import { IconSearch, IconX } from '../ui/icons'
 
 const STATUS_OPTIONS: { value: LeadStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All statuses' },
+  { value: 'new', label: 'New' },
   { value: 'contacted', label: 'Contacted' },
   { value: 'opened', label: 'Opened' },
   { value: 'replied', label: 'Replied' },

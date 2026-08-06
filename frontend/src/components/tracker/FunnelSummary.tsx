@@ -4,13 +4,14 @@ import { staggerContainer, staggerRow } from '../../lib/motion'
 import type { LeadStatus } from '../../types/lead'
 
 const STATUS_META: Record<LeadStatus, { label: string; color: string }> = {
+  new: { label: 'New', color: 'var(--color-slate-500)' },
   contacted: { label: 'Contacted', color: 'var(--color-temp-cold)' },
   opened: { label: 'Opened', color: 'var(--color-temp-cool)' },
   replied: { label: 'Replied', color: 'var(--color-temp-warm)' },
   converted: { label: 'Converted', color: 'var(--color-temp-hot)' },
 }
 
-const ORDER: LeadStatus[] = ['contacted', 'opened', 'replied', 'converted']
+const ORDER: LeadStatus[] = ['new', 'contacted', 'opened', 'replied', 'converted']
 
 interface FunnelSummaryProps {
   counts: Partial<Record<LeadStatus, number>>

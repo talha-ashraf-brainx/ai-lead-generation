@@ -12,6 +12,7 @@ import { SenderIdentitySettings } from "../entities/SenderIdentitySettings.js";
 import { User } from "../entities/User.js";
 import { AddLeadEnrichmentTracking1785842200000 } from "../migrations/1785842200000-AddLeadEnrichmentTracking.js";
 import { AddLeadStatusTimestamps1785846000000 } from "../migrations/1785846000000-AddLeadStatusTimestamps.js";
+import { AddNewLeadStatusEnumValue1785849000000 } from "../migrations/1785849000000-AddNewLeadStatusEnumValue.js";
 import { InitCampaigns1785844000000 } from "../migrations/1785844000000-InitCampaigns.js";
 import { InitEmailDrafts1785843000000 } from "../migrations/1785843000000-InitEmailDrafts.js";
 import { InitLeads1785841376000 } from "../migrations/1785841376000-InitLeads.js";
@@ -19,6 +20,7 @@ import { InitNotifications1785845000000 } from "../migrations/1785845000000-Init
 import { InitSettings1785847000000 } from "../migrations/1785847000000-InitSettings.js";
 import { InitUsers1785840825000 } from "../migrations/1785840825000-InitUsers.js";
 import { RenameSendgridToResend1785848000000 } from "../migrations/1785848000000-RenameSendgridToResend.js";
+import { SetNewLeadStatusDefault1785850000000 } from "../migrations/1785850000000-SetNewLeadStatusDefault.js";
 import { env } from "./env.js";
 
 export const AppDataSource = new DataSource({
@@ -46,6 +48,8 @@ export const AppDataSource = new DataSource({
     AddLeadStatusTimestamps1785846000000,
     InitSettings1785847000000,
     RenameSendgridToResend1785848000000,
+    AddNewLeadStatusEnumValue1785849000000,
+    SetNewLeadStatusDefault1785850000000,
   ],
   synchronize: false,
   logging: env.nodeEnv === "development" ? ["error", "warn"] : ["error"],

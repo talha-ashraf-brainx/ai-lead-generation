@@ -9,9 +9,10 @@ import { IconChevronLeft } from '../../components/ui/icons'
 import type { Campaign } from '../../types/campaign'
 import type { Lead, LeadStatus } from '../../types/lead'
 
-const FUNNEL_STATUSES: LeadStatus[] = ['contacted', 'opened', 'replied', 'converted']
+const FUNNEL_STATUSES: LeadStatus[] = ['new', 'contacted', 'opened', 'replied', 'converted']
 
 const STATUS_COLOR: Record<LeadStatus, string> = {
+  new: 'var(--color-slate-500)',
   contacted: 'var(--color-temp-cold)',
   opened: 'var(--color-temp-cool)',
   replied: 'var(--color-temp-warm)',

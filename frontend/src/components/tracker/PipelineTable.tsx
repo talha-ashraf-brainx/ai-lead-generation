@@ -3,6 +3,7 @@ import { StatusBadge } from '../ui/StatusBadge'
 import { Skeleton } from '../ui/Skeleton'
 
 const GROUPS: { status: LeadStatus; label: string }[] = [
+  { status: 'new', label: 'New' },
   { status: 'contacted', label: 'Contacted' },
   { status: 'opened', label: 'Opened' },
   { status: 'replied', label: 'Replied' },

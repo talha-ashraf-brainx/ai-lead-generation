@@ -50,7 +50,7 @@ export async function importCsvRows(rows: CsvPreviewRow[]): Promise<ImportSummar
         email: row.email,
         website: row.website || "",
         industry: "Imported",
-        status: "contacted",
+        status: "new",
         enrichment: "enriched",
         campaignId: null,
         campaignName: null,

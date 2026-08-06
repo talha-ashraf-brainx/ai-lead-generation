@@ -1,3 +1,4 @@
+import { searchPeopleWithApollo } from "../lib/apolloClient.js";
 import { Lead } from "../entities/Lead.js";
 import { LeadImportJob } from "../entities/LeadImportJob.js";
 import { AppDataSource } from "../lib/dataSource.js";
@@ -6,6 +7,36 @@ import { logger } from "../lib/logger.js";
 import { generateSeedLeads } from "../lib/seedLeadGenerator.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { enqueueEnrichment } from "./enrichmentService.js";
+
+// Common shape between seed-mode's fabricated leads (which come with a fake email
+// already) and real Apollo discovery results (which never include an email — that's
+// only revealed later, per-lead, by the enrichment step).
+interface DiscoveredLead {
+  company: string;
+  contactName: string;
+  email: string | null;
+  website: string;
+  industry: string;
+  painPoint: string | null;
+}
+
+async function discoverLeads(niche: string, location: string): Promise<DiscoveredLead[]> {
+  if (env.seedMode) {
+    // Simulates provider latency so the "non-blocking" UX actually has something to wait for.
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return generateSeedLeads(niche, location);
+  }
+
+  const people = await searchPeopleWithApollo(niche, location);
+  return people.map((person) => ({
+    company: person.company,
+    contactName: person.contactName,
+    email: null,
+    website: person.website,
+    industry: person.industry,
+    painPoint: null,
+  }));
+}
 
 function jobs() {
   return AppDataSource.getRepository(LeadImportJob);
@@ -33,34 +64,35 @@ export async function getImportJob(id: string): Promise<LeadImportJob> {
 
 async function runSearchJob(jobId: string, niche: string, location: string): Promise<void> {
   try {
-    if (!env.seedMode) {
-      // Real discovery-by-niche (Apollo/Hunter organization search) isn't built — only
-      // per-lead enrichment (Phase 3) talks to live providers. Until discovery lands,
-      // only seed mode works here.
-      throw new Error("Lead sourcing provider is not configured (SEED_MODE=false, and no live provider yet)");
-    }
+    const generated = await discoverLeads(niche, location);
 
-    // Simulates provider latency so the "non-blocking" UX actually has something to wait for.
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const generated = generateSeedLeads(niche, location);
-    const candidateEmails = generated.map((lead) => lead.email.toLowerCase());
+    const emailCandidates = [...new Set(generated.filter((lead) => lead.email).map((lead) => lead.email!.toLowerCase()))];
+    const companyCandidates = [...new Set(generated.map((lead) => lead.company.toLowerCase()))];
     const existing = await leads()
       .createQueryBuilder("lead")
-      .where("LOWER(lead.email) IN (:...emails)", { emails: candidateEmails })
+      .where("LOWER(lead.email) IN (:...emails)", { emails: emailCandidates.length ? emailCandidates : [""] })
+      .orWhere("LOWER(lead.company) IN (:...companies)", { companies: companyCandidates.length ? companyCandidates : [""] })
       .getMany();
     const existingEmails = new Set(existing.map((lead) => lead.email?.toLowerCase()).filter(Boolean));
+    // Real discovery results have no email yet (only revealed later, by enrichment), so
+    // they're deduped against already-sourced leads by company+contact instead.
+    const existingPairs = new Set(existing.map((lead) => `${lead.company.toLowerCase()}::${lead.contactName.toLowerCase()}`));
 
     const newLeads: Lead[] = [];
     let duplicateCount = 0;
 
     for (const generatedLead of generated) {
-      const emailLower = generatedLead.email.toLowerCase();
-      if (existingEmails.has(emailLower)) {
+      const pairKey = `${generatedLead.company.toLowerCase()}::${generatedLead.contactName.toLowerCase()}`;
+      const isDuplicate = generatedLead.email
+        ? existingEmails.has(generatedLead.email.toLowerCase())
+        : existingPairs.has(pairKey);
+      if (isDuplicate) {
         duplicateCount++;
         continue;
       }
-      existingEmails.add(emailLower);
+      if (generatedLead.email) existingEmails.add(generatedLead.email.toLowerCase());
+      existingPairs.add(pairKey);
+
       newLeads.push(
         leads().create({
           company: generatedLead.company,
@@ -68,7 +100,7 @@ async function runSearchJob(jobId: string, niche: string, location: string): Pro
           email: generatedLead.email,
           website: generatedLead.website,
           industry: generatedLead.industry,
-          status: "contacted",
+          status: "new",
           enrichment: "pending",
           campaignId: null,
           campaignName: null,

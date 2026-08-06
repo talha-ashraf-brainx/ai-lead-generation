@@ -46,7 +46,7 @@ function leads() {
 
 // Returns the updated lead if the transition actually happened, or null if it was a
 // no-op (already at/past that status) — callers use this to avoid notifying twice.
-async function advanceLeadStatus(leadId: string, status: LeadStatus): Promise<Lead | null> {
+export async function advanceLeadStatus(leadId: string, status: LeadStatus): Promise<Lead | null> {
   const lead = await leads().findOne({ where: { id: leadId } });
   if (lead && isForwardLeadStatus(lead.status, status)) {
     const patch: Partial<Lead> = { status };

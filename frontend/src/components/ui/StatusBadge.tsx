@@ -4,6 +4,7 @@ import type { CampaignStatus } from '../../types/campaign'
 import { IconCheck } from './icons'
 
 const STATUS_META: Record<LeadStatus, { label: string; color: string; glow: boolean }> = {
+  new: { label: 'New', color: 'var(--color-slate-500)', glow: false },
   contacted: { label: 'Contacted', color: 'var(--color-temp-cold)', glow: false },
   opened: { label: 'Opened', color: 'var(--color-temp-cool)', glow: false },
   replied: { label: 'Replied', color: 'var(--color-temp-warm)', glow: true },

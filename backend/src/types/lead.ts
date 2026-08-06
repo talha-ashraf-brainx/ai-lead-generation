@@ -1,4 +1,4 @@
-export const LEAD_STATUSES = ["contacted", "opened", "replied", "converted"] as const;
+export const LEAD_STATUSES = ["new", "contacted", "opened", "replied", "converted"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const ENRICHMENT_STATUSES = ["pending", "enriched", "failed"] as const;
