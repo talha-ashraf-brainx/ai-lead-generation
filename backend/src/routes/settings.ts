@@ -23,9 +23,9 @@ function parseProvider(value: string): ApiKeyProvider {
   return value as ApiKeyProvider;
 }
 
-settingsRouter.get("/api-keys", async (_req, res, next) => {
+settingsRouter.get("/api-keys", async (req, res, next) => {
   try {
-    res.json(await listApiKeyStatuses());
+    res.json(await listApiKeyStatuses(req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -37,7 +37,7 @@ settingsRouter.put("/api-keys/:provider", async (req, res, next) => {
     const { value } = req.body ?? {};
     if (typeof value !== "string" || !value.trim()) throw new ApiError(400, "value is required");
 
-    res.json(await saveApiKey(provider, value.trim()));
+    res.json(await saveApiKey(provider, value.trim(), req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -45,16 +45,16 @@ settingsRouter.put("/api-keys/:provider", async (req, res, next) => {
 
 settingsRouter.delete("/api-keys/:provider", async (req, res, next) => {
   try {
-    await disconnectApiKey(parseProvider(req.params.provider));
+    await disconnectApiKey(parseProvider(req.params.provider), req.user!.id);
     res.status(204).end();
   } catch (err) {
     next(err);
   }
 });
 
-settingsRouter.get("/sender-identity", async (_req, res, next) => {
+settingsRouter.get("/sender-identity", async (req, res, next) => {
   try {
-    res.json(await getSenderIdentity());
+    res.json(await getSenderIdentity(req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -76,7 +76,7 @@ settingsRouter.put("/sender-identity", async (req, res, next) => {
         smtpPort: typeof smtpPort === "string" ? smtpPort : "",
         smtpUsername: typeof smtpUsername === "string" ? smtpUsername : "",
         smtpPassword: typeof smtpPassword === "string" ? smtpPassword : "",
-      }),
+      }, req.user!.id),
     );
   } catch (err) {
     next(err);
@@ -103,9 +103,9 @@ settingsRouter.put("/profile", async (req, res, next) => {
   }
 });
 
-settingsRouter.delete("/data", async (_req, res, next) => {
+settingsRouter.delete("/data", async (req, res, next) => {
   try {
-    await deleteAllData();
+    await deleteAllData(req.user!.id);
     res.status(204).end();
   } catch (err) {
     next(err);

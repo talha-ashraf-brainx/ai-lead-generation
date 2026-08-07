@@ -1,11 +1,14 @@
 import { Column, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
-// Singleton table (single-user app, no self-serve signup) — always exactly one row,
-// created lazily with defaults on first read (see notificationService.getOrCreateSettings).
+// Exactly one row per user, created lazily with defaults on first read
+// (see notificationService.getOrCreateSettings).
 @Entity({ name: "notification_settings" })
 export class NotificationSettings {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
+
+  @Column({ type: "uuid", unique: true })
+  userId!: string;
 
   @Column({ type: "boolean", default: false })
   slackEnabled!: boolean;

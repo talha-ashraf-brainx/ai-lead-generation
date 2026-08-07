@@ -10,6 +10,9 @@ export class CampaignSend {
   id!: string;
 
   @Column({ type: "uuid" })
+  userId!: string;
+
+  @Column({ type: "uuid" })
   campaignId!: string;
 
   @Column({ type: "uuid" })

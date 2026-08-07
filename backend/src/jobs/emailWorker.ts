@@ -50,6 +50,7 @@ async function scheduleNextStage(campaignId: string, leadId: string, stage: Extr
 
   const send = await campaignSends().save(
     campaignSends().create({
+      userId: lead.userId,
       campaignId,
       leadId,
       stage,

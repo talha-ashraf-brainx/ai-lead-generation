@@ -46,6 +46,7 @@ leadsRouter.get("/", async (req, res, next) => {
 
     res.json(
       await listLeads({
+        userId: req.user!.id,
         page: parsedPage,
         pageSize: parsedPageSize,
         search: typeof search === "string" ? search : undefined,
@@ -61,9 +62,9 @@ leadsRouter.get("/", async (req, res, next) => {
   }
 });
 
-leadsRouter.get("/industries", async (_req, res, next) => {
+leadsRouter.get("/industries", async (req, res, next) => {
   try {
-    res.json(await listIndustries());
+    res.json(await listIndustries(req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -74,7 +75,7 @@ leadsRouter.post("/bulk-delete", async (req, res, next) => {
     const { ids } = req.body ?? {};
     if (!Array.isArray(ids) || ids.length === 0) throw new ApiError(400, "ids must be a non-empty array");
 
-    await bulkDeleteLeads(ids);
+    await bulkDeleteLeads(ids, req.user!.id);
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -87,7 +88,7 @@ leadsRouter.post("/bulk-add-to-campaign", async (req, res, next) => {
     if (!Array.isArray(ids) || ids.length === 0) throw new ApiError(400, "ids must be a non-empty array");
     if (typeof campaignId !== "string" || !campaignId) throw new ApiError(400, "campaignId is required");
 
-    res.json(await bulkAddLeadsToCampaign(ids, campaignId));
+    res.json(await bulkAddLeadsToCampaign(ids, campaignId, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -115,7 +116,7 @@ leadsRouter.post("/csv/import", async (req, res, next) => {
       throw new ApiError(400, "No rows to import");
     }
 
-    const summary = await importCsvRows(rows);
+    const summary = await importCsvRows(rows, req.user!.id);
     res.json(summary);
   } catch (err) {
     next(err);
@@ -129,7 +130,7 @@ leadsRouter.post("/search", async (req, res, next) => {
       throw new ApiError(400, "A niche/keyword and a location are both required");
     }
 
-    const job = await startLeadSearch(niche.trim(), location.trim());
+    const job = await startLeadSearch(niche.trim(), location.trim(), req.user!.id);
     res.status(202).json({ jobId: job.id, status: job.status });
   } catch (err) {
     next(err);
@@ -138,7 +139,7 @@ leadsRouter.post("/search", async (req, res, next) => {
 
 leadsRouter.get("/:id", async (req, res, next) => {
   try {
-    res.json(await getLead(req.params.id));
+    res.json(await getLead(req.params.id, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -146,7 +147,7 @@ leadsRouter.get("/:id", async (req, res, next) => {
 
 leadsRouter.get("/:id/activity", async (req, res, next) => {
   try {
-    res.json(await getLeadActivity(req.params.id));
+    res.json(await getLeadActivity(req.params.id, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -154,7 +155,7 @@ leadsRouter.get("/:id/activity", async (req, res, next) => {
 
 leadsRouter.post("/:id/enrich", async (req, res, next) => {
   try {
-    const lead = await enrichLead(req.params.id);
+    const lead = await enrichLead(req.params.id, req.user!.id);
     res.json(lead);
   } catch (err) {
     next(err);
@@ -173,7 +174,7 @@ leadsRouter.patch("/:id/debug-fields", async (req, res, next) => {
       throw new ApiError(400, "website must be a string");
     }
 
-    res.json(await updateLeadDebugFields(req.params.id, { email, website }));
+    res.json(await updateLeadDebugFields(req.params.id, req.user!.id, { email, website }));
   } catch (err) {
     next(err);
   }
@@ -186,7 +187,7 @@ leadsRouter.patch("/:id/status", async (req, res, next) => {
       throw new ApiError(400, `status must be one of: ${LEAD_STATUSES.join(", ")}`);
     }
 
-    res.json(await setLeadStatus(req.params.id, status));
+    res.json(await setLeadStatus(req.params.id, status, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -194,7 +195,7 @@ leadsRouter.patch("/:id/status", async (req, res, next) => {
 
 leadsRouter.get("/import-jobs/:id", async (req, res, next) => {
   try {
-    const job = await getImportJob(req.params.id);
+    const job = await getImportJob(req.params.id, req.user!.id);
     res.json({
       id: job.id,
       niche: job.niche,

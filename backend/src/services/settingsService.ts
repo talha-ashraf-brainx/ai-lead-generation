@@ -25,8 +25,8 @@ function users() {
   return AppDataSource.getRepository(User);
 }
 
-export async function listApiKeyStatuses(): Promise<ApiKeyStatus[]> {
-  const stored = await apiKeys().find();
+export async function listApiKeyStatuses(userId: string): Promise<ApiKeyStatus[]> {
+  const stored = await apiKeys().find({ where: { userId } });
   const byProvider = new Map(stored.map((entry) => [entry.provider, entry]));
 
   return API_KEY_PROVIDERS.map((provider) => {
@@ -40,10 +40,10 @@ export async function listApiKeyStatuses(): Promise<ApiKeyStatus[]> {
   });
 }
 
-export async function saveApiKey(provider: ApiKeyProvider, rawValue: string): Promise<ApiKeyStatus> {
+export async function saveApiKey(provider: ApiKeyProvider, rawValue: string, userId: string): Promise<ApiKeyStatus> {
   const repo = apiKeys();
-  const existing = await repo.findOne({ where: { provider } });
-  const entry = existing ?? repo.create({ provider });
+  const existing = await repo.findOne({ where: { provider, userId } });
+  const entry = existing ?? repo.create({ provider, userId });
 
   entry.encryptedValue = encryptSecret(rawValue);
   entry.maskedValue = maskSecret(rawValue);
@@ -52,8 +52,8 @@ export async function saveApiKey(provider: ApiKeyProvider, rawValue: string): Pr
   return { provider, connected: true, maskedValue: saved.maskedValue, updatedAt: saved.updatedAt.toISOString() };
 }
 
-export async function disconnectApiKey(provider: ApiKeyProvider): Promise<void> {
-  await apiKeys().delete({ provider });
+export async function disconnectApiKey(provider: ApiKeyProvider, userId: string): Promise<void> {
+  await apiKeys().delete({ provider, userId });
 }
 
 const DEFAULT_SENDER_IDENTITY_FIELDS = {
@@ -65,12 +65,12 @@ const DEFAULT_SENDER_IDENTITY_FIELDS = {
   smtpUsername: "",
 };
 
-async function getOrCreateSenderIdentity(): Promise<SenderIdentitySettings> {
+async function getOrCreateSenderIdentity(userId: string): Promise<SenderIdentitySettings> {
   const repo = senderIdentityRepo();
-  const [existing] = await repo.find({ take: 1 });
+  const existing = await repo.findOne({ where: { userId } });
   if (existing) return existing;
 
-  return repo.save(repo.create({ ...DEFAULT_SENDER_IDENTITY_FIELDS, smtpPasswordEncrypted: encryptSecret("") }));
+  return repo.save(repo.create({ ...DEFAULT_SENDER_IDENTITY_FIELDS, userId, smtpPasswordEncrypted: encryptSecret("") }));
 }
 
 function toSenderIdentity(entity: SenderIdentitySettings): SenderIdentity {
@@ -85,12 +85,12 @@ function toSenderIdentity(entity: SenderIdentitySettings): SenderIdentity {
   };
 }
 
-export async function getSenderIdentity(): Promise<SenderIdentity> {
-  return toSenderIdentity(await getOrCreateSenderIdentity());
+export async function getSenderIdentity(userId: string): Promise<SenderIdentity> {
+  return toSenderIdentity(await getOrCreateSenderIdentity(userId));
 }
 
-export async function saveSenderIdentity(input: SenderIdentity): Promise<SenderIdentity> {
-  const entity = await getOrCreateSenderIdentity();
+export async function saveSenderIdentity(input: SenderIdentity, userId: string): Promise<SenderIdentity> {
+  const entity = await getOrCreateSenderIdentity(userId);
   entity.fromName = input.fromName;
   entity.fromEmail = input.fromEmail;
   entity.smtpFallbackEnabled = input.smtpFallbackEnabled;
@@ -119,19 +119,23 @@ export async function saveProfile(userId: string, input: ProfileSettings): Promi
   return { name: saved.name ?? "", email: saved.email };
 }
 
-// Danger-zone "delete everything" — mirrors the frontend mock's deleteAllData,
-// which clears every localStorage key except the auth session. Deletes children
-// before parents explicitly rather than relying on cascade config.
-export async function deleteAllData(): Promise<void> {
+// Danger-zone "delete everything" — scoped to the calling account only, so one user
+// wiping their data can't touch another's. Deletes children before parents explicitly
+// rather than relying on cascade config.
+export async function deleteAllData(userId: string): Promise<void> {
   await AppDataSource.transaction(async (manager) => {
-    await manager.createQueryBuilder().delete().from(CampaignSend).execute();
-    await manager.createQueryBuilder().delete().from(EmailDraft).execute();
-    await manager.createQueryBuilder().delete().from(AppNotification).execute();
-    await manager.createQueryBuilder().delete().from(Lead).execute();
-    await manager.createQueryBuilder().delete().from(Campaign).execute();
-    await manager.createQueryBuilder().delete().from(LeadImportJob).execute();
-    await manager.createQueryBuilder().delete().from(ApiKeyCredential).execute();
-    await manager.createQueryBuilder().delete().from(NotificationSettings).execute();
-    await manager.createQueryBuilder().delete().from(SenderIdentitySettings).execute();
+    for (const entity of [
+      CampaignSend,
+      EmailDraft,
+      AppNotification,
+      Lead,
+      Campaign,
+      LeadImportJob,
+      ApiKeyCredential,
+      NotificationSettings,
+      SenderIdentitySettings,
+    ]) {
+      await manager.createQueryBuilder().delete().from(entity).where("userId = :userId", { userId }).execute();
+    }
   });
 }

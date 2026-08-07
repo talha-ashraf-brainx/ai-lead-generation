@@ -21,6 +21,7 @@ import { InitSettings1785847000000 } from "../migrations/1785847000000-InitSetti
 import { InitUsers1785840825000 } from "../migrations/1785840825000-InitUsers.js";
 import { RenameSendgridToResend1785848000000 } from "../migrations/1785848000000-RenameSendgridToResend.js";
 import { SetNewLeadStatusDefault1785850000000 } from "../migrations/1785850000000-SetNewLeadStatusDefault.js";
+import { AddUserScoping1785851000000 } from "../migrations/1785851000000-AddUserScoping.js";
 import { env } from "./env.js";
 
 export const AppDataSource = new DataSource({
@@ -50,6 +51,7 @@ export const AppDataSource = new DataSource({
     RenameSendgridToResend1785848000000,
     AddNewLeadStatusEnumValue1785849000000,
     SetNewLeadStatusDefault1785850000000,
+    AddUserScoping1785851000000,
   ],
   synchronize: false,
   logging: env.nodeEnv === "development" ? ["error", "warn"] : ["error"],

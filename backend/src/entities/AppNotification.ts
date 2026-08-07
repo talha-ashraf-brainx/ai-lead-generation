@@ -8,6 +8,9 @@ export class AppNotification {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  @Column({ type: "uuid" })
+  userId!: string;
+
   @Column({ type: "enum", enum: NOTIFICATION_KINDS })
   kind!: NotificationKind;
 

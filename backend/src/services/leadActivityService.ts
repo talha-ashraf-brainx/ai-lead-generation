@@ -30,11 +30,11 @@ function sends() {
 // Built from the real send/open events in campaign_sends plus the lead's own
 // repliedAt/convertedAt — replies aren't campaign_sends rows (see
 // campaignSendTrackingService.recordReply), they live on the lead itself.
-export async function getLeadActivity(leadId: string): Promise<ActivityEvent[]> {
-  const lead = await leads().findOne({ where: { id: leadId } });
+export async function getLeadActivity(leadId: string, userId: string): Promise<ActivityEvent[]> {
+  const lead = await leads().findOne({ where: { id: leadId, userId } });
   if (!lead) throw new ApiError(404, "Lead not found");
 
-  const leadSends = await sends().find({ where: { leadId }, order: { createdAt: "ASC" } });
+  const leadSends = await sends().find({ where: { leadId, userId }, order: { createdAt: "ASC" } });
   const events: ActivityEvent[] = [];
 
   leadSends.forEach((send) => {

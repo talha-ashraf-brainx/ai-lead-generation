@@ -21,6 +21,10 @@ function applyDateRange(qb: SelectQueryBuilder<Lead>, range: AnalyticsDateRange)
   if (range.dateTo) qb.andWhere("lead.createdAt <= :dateTo", { dateTo: range.dateTo });
 }
 
+function scopedLeads(userId: string): SelectQueryBuilder<Lead> {
+  return leads().createQueryBuilder("lead").where("lead.userId = :userId", { userId });
+}
+
 interface RateRow {
   total: string;
   opened: string;
@@ -36,8 +40,8 @@ function rateSelect(qb: SelectQueryBuilder<Lead>) {
     .addSelect(`COUNT(*) FILTER (WHERE lead.status = 'converted')`, "converted");
 }
 
-export async function getAnalyticsOverview(range: AnalyticsDateRange): Promise<AnalyticsOverview> {
-  const qb = leads().createQueryBuilder("lead");
+export async function getAnalyticsOverview(range: AnalyticsDateRange, userId: string): Promise<AnalyticsOverview> {
+  const qb = scopedLeads(userId);
   applyDateRange(qb, range);
   const row = (await rateSelect(qb).getRawOne<RateRow>())!;
 
@@ -49,8 +53,8 @@ export async function getAnalyticsOverview(range: AnalyticsDateRange): Promise<A
   });
 }
 
-export async function getAnalyticsSeries(range: AnalyticsDateRange): Promise<AnalyticsSeries> {
-  const qb = leads().createQueryBuilder("lead");
+export async function getAnalyticsSeries(range: AnalyticsDateRange, userId: string): Promise<AnalyticsSeries> {
+  const qb = scopedLeads(userId);
   applyDateRange(qb, range);
   const rows = await qb.getMany();
 
@@ -61,10 +65,10 @@ export async function getAnalyticsSeries(range: AnalyticsDateRange): Promise<Ana
   });
 }
 
-export async function getCampaignBreakdown(range: AnalyticsDateRange): Promise<CampaignBreakdownRow[]> {
-  const allCampaigns = await campaigns().find({ order: { createdAt: "DESC" } });
+export async function getCampaignBreakdown(range: AnalyticsDateRange, userId: string): Promise<CampaignBreakdownRow[]> {
+  const allCampaigns = await campaigns().find({ where: { userId }, order: { createdAt: "DESC" } });
 
-  const qb = leads().createQueryBuilder("lead").where("lead.campaignId IS NOT NULL").groupBy("lead.campaignId");
+  const qb = scopedLeads(userId).andWhere("lead.campaignId IS NOT NULL").groupBy("lead.campaignId");
   applyDateRange(qb, range);
   rateSelect(qb).addSelect("lead.campaignId", "campaignId");
   const rows = await qb.getRawMany<RateRow & { campaignId: string }>();

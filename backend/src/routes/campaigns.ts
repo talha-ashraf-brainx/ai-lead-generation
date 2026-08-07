@@ -7,9 +7,9 @@ import { CAMPAIGN_STATUSES } from "../types/campaign.js";
 export const campaignsRouter = Router();
 campaignsRouter.use(requireAuth);
 
-campaignsRouter.get("/", async (_req, res, next) => {
+campaignsRouter.get("/", async (req, res, next) => {
   try {
-    res.json(await listCampaigns());
+    res.json(await listCampaigns(req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -31,7 +31,7 @@ campaignsRouter.post("/", async (req, res, next) => {
       schedule,
       scheduledAt: scheduledAt ?? null,
       followUps,
-    });
+    }, req.user!.id);
     res.status(201).json(campaign);
   } catch (err) {
     next(err);
@@ -40,7 +40,7 @@ campaignsRouter.post("/", async (req, res, next) => {
 
 campaignsRouter.get("/:id", async (req, res, next) => {
   try {
-    res.json(await getCampaign(req.params.id));
+    res.json(await getCampaign(req.params.id, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -48,8 +48,8 @@ campaignsRouter.get("/:id", async (req, res, next) => {
 
 campaignsRouter.get("/:id/leads", async (req, res, next) => {
   try {
-    await getCampaign(req.params.id);
-    res.json(await getCampaignLeads(req.params.id));
+    await getCampaign(req.params.id, req.user!.id);
+    res.json(await getCampaignLeads(req.params.id, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -62,7 +62,7 @@ campaignsRouter.patch("/:id/status", async (req, res, next) => {
       throw new ApiError(400, `status must be one of: ${CAMPAIGN_STATUSES.join(", ")}`);
     }
 
-    res.json(await setCampaignStatus(req.params.id, status));
+    res.json(await setCampaignStatus(req.params.id, status, req.user!.id));
   } catch (err) {
     next(err);
   }

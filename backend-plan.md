@@ -19,9 +19,13 @@ Stack: Node.js (Express) + PostgreSQL + BullMQ (Redis). Built phase by phase, mi
 ## Phase 1 — Auth
 - [x] `User` entity + migration
 - [x] JWT auth (`jsonwebtoken` + `bcryptjs`), httpOnly cookie, protected-route middleware
-- [x] Password reset (token dev-logged while `SEED_MODE=true`; real email lands in Phase 7)
+- [x] Password reset (token exposed in the response while `DEBUG=true`; real email lands in Phase 7)
+- [x] Self-serve signup (`POST /api/auth/signup`, name/email/password, no email verification) + multi-tenancy
 
-Single-user app, no self-serve signup.
+No longer a single-user app: the `AddUserScoping` migration put a `userId` on all nine data
+tables (FK → `users`, `ON DELETE CASCADE`, indexed), every service filters on it, and each
+signup gets a fully isolated workspace. Verified with two live accounts — see
+`frontend-integration.md` §12.
 
 ---
 

@@ -11,7 +11,7 @@ emailDraftsRouter.post("/bulk-generate", (req, res, next) => {
     const { leadIds } = req.body ?? {};
     if (!Array.isArray(leadIds) || leadIds.length === 0) throw new ApiError(400, "leadIds must be a non-empty array");
 
-    res.status(202).json(enqueueBulkGeneration(leadIds));
+    res.status(202).json(enqueueBulkGeneration(leadIds, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -19,7 +19,7 @@ emailDraftsRouter.post("/bulk-generate", (req, res, next) => {
 
 emailDraftsRouter.get("/:leadId", async (req, res, next) => {
   try {
-    const draft = await getEmailDraft(req.params.leadId);
+    const draft = await getEmailDraft(req.params.leadId, req.user!.id);
     if (!draft) throw new ApiError(404, "No draft for this lead yet");
     res.json(draft);
   } catch (err) {
@@ -29,7 +29,7 @@ emailDraftsRouter.get("/:leadId", async (req, res, next) => {
 
 emailDraftsRouter.post("/:leadId/generate", async (req, res, next) => {
   try {
-    res.json(await generateEmailDraft(req.params.leadId));
+    res.json(await generateEmailDraft(req.params.leadId, req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -45,7 +45,7 @@ emailDraftsRouter.patch("/:leadId", async (req, res, next) => {
       throw new ApiError(400, "status must be 'edited' or 'approved'");
     }
 
-    res.json(await saveEmailDraft(req.params.leadId, { subject, body }, status));
+    res.json(await saveEmailDraft(req.params.leadId, { subject, body }, status, req.user!.id));
   } catch (err) {
     next(err);
   }

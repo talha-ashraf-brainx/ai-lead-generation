@@ -10,6 +10,7 @@ Read first when picking up backend work: `backend-plan.md` (phase-by-phase check
   - [backend/src/lib/foo.ts](backend/src/lib/foo.ts)
   - [backend/src/lib/bar.ts](backend/src/lib/bar.ts) ✗
   ```
+- **Every data query must be scoped by `userId`.** The app is multi-tenant: all nine data tables carry a `userId` and each account is fully isolated (see `frontend-integration.md` §12). Service functions take a `userId` and filter on it; routes pass `req.user!.id`. Never add a query that reads or writes a data table without that filter — a miss is a cross-account data leak, not a cosmetic bug.
 - **Write unit tests where relevant.** Pure logic (status-rank checks, template rendering, parsing/validation helpers, anything with no DB/network/queue dependency) gets a test in `backend/src/**/*.test.ts`, run via `npm run test --workspace=backend` (vitest). Don't write tests that need live Postgres/Redis/external APIs — those get a manual smoke test instead (see the verification notes per phase in `backend-plan.md`).
 
 ## Keep these docs updated

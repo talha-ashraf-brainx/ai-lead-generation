@@ -41,6 +41,7 @@ function buildInitialSend(campaignId: string, lead: Lead, draft: EmailDraft | un
   const ineligibleReason = checkCampaignEligibility(lead, draft);
   if (ineligibleReason) {
     return campaignSends().create({
+      userId: lead.userId,
       campaignId,
       leadId: lead.id,
       stage: "initial",
@@ -51,6 +52,7 @@ function buildInitialSend(campaignId: string, lead: Lead, draft: EmailDraft | un
     });
   }
   return campaignSends().create({
+    userId: lead.userId,
     campaignId,
     leadId: lead.id,
     stage: "initial",
@@ -65,12 +67,18 @@ function buildInitialSend(campaignId: string, lead: Lead, draft: EmailDraft | un
 // that's the *only* path leads ever go through. Returns whether a send actually got
 // queued, so callers can flip a "draft" campaign to "sending" the moment one does.
 export async function queueInitialSendForLead(lead: Lead, campaign: Campaign): Promise<boolean> {
+  // Both arguments are pre-loaded entities, so a caller that resolved them from different
+  // accounts would silently cross tenants — fail loudly instead of queueing that send.
+  if (lead.userId !== campaign.userId) {
+    throw new ApiError(404, "Campaign not found");
+  }
+
   const alreadyExists = await campaignSends().findOne({
-    where: { campaignId: campaign.id, leadId: lead.id, stage: "initial" },
+    where: { campaignId: campaign.id, leadId: lead.id, stage: "initial", userId: lead.userId },
   });
   if (alreadyExists) return false;
 
-  const draft = await drafts().findOne({ where: { leadId: lead.id } });
+  const draft = await drafts().findOne({ where: { leadId: lead.id, userId: lead.userId } });
   const send = await campaignSends().save(buildInitialSend(campaign.id, lead, draft ?? undefined));
   if (send.status !== "queued") return false;
 
@@ -80,9 +88,10 @@ export async function queueInitialSendForLead(lead: Lead, campaign: Campaign): P
 
 // Starts empty — leads are added afterward via bulk-add-to-campaign, which is what
 // actually queues their sends (see queueInitialSendForLead). Stays "draft" until then.
-export async function createCampaign(input: CreateCampaignInput): Promise<Campaign> {
+export async function createCampaign(input: CreateCampaignInput, userId: string): Promise<Campaign> {
   return campaigns().save(
     campaigns().create({
+      userId,
       name: input.name,
       status: "draft",
       schedule: input.schedule,
@@ -97,12 +106,12 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
   );
 }
 
-export async function listCampaigns(): Promise<Campaign[]> {
-  return campaigns().find({ order: { createdAt: "DESC" } });
+export async function listCampaigns(userId: string): Promise<Campaign[]> {
+  return campaigns().find({ where: { userId }, order: { createdAt: "DESC" } });
 }
 
-export async function getCampaign(id: string): Promise<Campaign> {
-  const campaign = await campaigns().findOne({ where: { id } });
+export async function getCampaign(id: string, userId: string): Promise<Campaign> {
+  const campaign = await campaigns().findOne({ where: { id, userId } });
   if (!campaign) throw new ApiError(404, "Campaign not found");
   return campaign;
 }
@@ -116,12 +125,12 @@ export interface CampaignLead extends Lead {
 // "new" whether the initial send is still queued or failed outright — it can't tell those
 // apart. Send status per lead is a shape only this endpoint's consumer (CampaignLeadsTable)
 // needs, so it's layered on here rather than added to the generic Lead contract.
-export async function getCampaignLeads(campaignId: string): Promise<CampaignLead[]> {
-  const campaignLeads = await leads().find({ where: { campaignId } });
+export async function getCampaignLeads(campaignId: string, userId: string): Promise<CampaignLead[]> {
+  const campaignLeads = await leads().find({ where: { campaignId, userId } });
   if (!campaignLeads.length) return [];
 
   const initialSends = await campaignSends().find({
-    where: { campaignId, stage: "initial", leadId: In(campaignLeads.map((lead) => lead.id)) },
+    where: { campaignId, userId, stage: "initial", leadId: In(campaignLeads.map((lead) => lead.id)) },
   });
   const sendByLeadId = new Map(initialSends.map((send) => [send.leadId, send]));
 
@@ -133,8 +142,8 @@ export async function getCampaignLeads(campaignId: string): Promise<CampaignLead
 }
 
 // Manual override — e.g. marking a campaign "completed" once its results are in.
-export async function setCampaignStatus(id: string, status: CampaignStatus): Promise<Campaign> {
-  const campaign = await getCampaign(id);
+export async function setCampaignStatus(id: string, status: CampaignStatus, userId: string): Promise<Campaign> {
+  const campaign = await getCampaign(id, userId);
   campaign.status = status;
   return campaigns().save(campaign);
 }

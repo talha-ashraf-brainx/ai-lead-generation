@@ -21,7 +21,7 @@ function parseDateRange(query: Record<string, unknown>): AnalyticsDateRange {
 
 analyticsRouter.get("/overview", async (req, res, next) => {
   try {
-    res.json(await getAnalyticsOverview(parseDateRange(req.query)));
+    res.json(await getAnalyticsOverview(parseDateRange(req.query), req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -29,7 +29,7 @@ analyticsRouter.get("/overview", async (req, res, next) => {
 
 analyticsRouter.get("/series", async (req, res, next) => {
   try {
-    res.json(await getAnalyticsSeries(parseDateRange(req.query)));
+    res.json(await getAnalyticsSeries(parseDateRange(req.query), req.user!.id));
   } catch (err) {
     next(err);
   }
@@ -37,7 +37,7 @@ analyticsRouter.get("/series", async (req, res, next) => {
 
 analyticsRouter.get("/campaigns", async (req, res, next) => {
   try {
-    res.json(await getCampaignBreakdown(parseDateRange(req.query)));
+    res.json(await getCampaignBreakdown(parseDateRange(req.query), req.user!.id));
   } catch (err) {
     next(err);
   }

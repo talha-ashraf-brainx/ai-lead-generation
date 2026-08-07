@@ -28,32 +28,39 @@ function leads() {
   return AppDataSource.getRepository(Lead);
 }
 
-export async function startLeadSearch(niche: string, location: string): Promise<LeadImportJob> {
-  const job = await jobs().save(jobs().create({ niche, location, status: "processing" }));
+export async function startLeadSearch(niche: string, location: string, userId: string): Promise<LeadImportJob> {
+  const job = await jobs().save(jobs().create({ niche, location, status: "processing", userId }));
 
   // Fire-and-forget: the caller polls getImportJob() for progress (FR-LEAD-IN-5).
   // No queue yet (BullMQ lands in Phase 5) — a single in-process run is enough for one job at a time.
-  void runSearchJob(job.id, niche, location);
+  void runSearchJob(job.id, niche, location, userId);
 
   return job;
 }
 
-export async function getImportJob(id: string): Promise<LeadImportJob> {
-  const job = await jobs().findOne({ where: { id } });
+export async function getImportJob(id: string, userId: string): Promise<LeadImportJob> {
+  const job = await jobs().findOne({ where: { id, userId } });
   if (!job) throw new ApiError(404, "Import job not found");
   return job;
 }
 
-async function runSearchJob(jobId: string, niche: string, location: string): Promise<void> {
+async function runSearchJob(jobId: string, niche: string, location: string, userId: string): Promise<void> {
   try {
     const generated = await discoverLeads(niche, location);
 
     const emailCandidates = [...new Set(generated.filter((lead) => lead.email).map((lead) => lead.email!.toLowerCase()))];
     const companyCandidates = [...new Set(generated.map((lead) => lead.company.toLowerCase()))];
+    // Dedup is per-account: two users searching the same niche must each get their own
+    // copy of a lead rather than the second one seeing it as a duplicate of the first's.
     const existing = await leads()
       .createQueryBuilder("lead")
-      .where("LOWER(lead.email) IN (:...emails)", { emails: emailCandidates.length ? emailCandidates : [""] })
-      .orWhere("LOWER(lead.company) IN (:...companies)", { companies: companyCandidates.length ? companyCandidates : [""] })
+      .where("lead.userId = :userId", { userId })
+      .andWhere((qb) => {
+        qb.where("LOWER(lead.email) IN (:...emails)", { emails: emailCandidates.length ? emailCandidates : [""] })
+          .orWhere("LOWER(lead.company) IN (:...companies)", {
+            companies: companyCandidates.length ? companyCandidates : [""],
+          });
+      })
       .getMany();
     const existingEmails = new Set(existing.map((lead) => lead.email?.toLowerCase()).filter(Boolean));
     // Real discovery results have no email yet (only revealed later, by enrichment), so
@@ -77,6 +84,7 @@ async function runSearchJob(jobId: string, niche: string, location: string): Pro
 
       newLeads.push(
         leads().create({
+          userId,
           company: generatedLead.company,
           contactName: generatedLead.contactName,
           email: generatedLead.email,
@@ -96,7 +104,7 @@ async function runSearchJob(jobId: string, niche: string, location: string): Pro
       await leads().save(newLeads);
       // FR handoff to Phase 3: each newly-sourced lead starts "pending" and gets
       // enriched in the background so the leads table's status column updates in place.
-      newLeads.forEach((lead) => enqueueEnrichment(lead.id));
+      newLeads.forEach((lead) => enqueueEnrichment(lead.id, userId));
     }
 
     await jobs().update(jobId, {

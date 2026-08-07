@@ -9,6 +9,14 @@ export async function login(email: string, password: string): Promise<User> {
   return user
 }
 
+export async function signup(name: string, email: string, password: string): Promise<User> {
+  const { user } = await apiFetch<{ user: User; token: string }>('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, password }),
+  })
+  return user
+}
+
 export async function logout(): Promise<void> {
   await apiFetch<void>('/api/auth/logout', { method: 'POST' })
 }

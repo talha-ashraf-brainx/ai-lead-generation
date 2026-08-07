@@ -43,13 +43,14 @@ Login sets an httpOnly cookie (`emberline_session`, see `AUTH_COOKIE_NAME`) — 
 
 | | |
 |---|---|
+| `POST /api/auth/signup` | `{ name, email, password }` → `201 { user, token }`. Sets the session cookie, so the client is logged in immediately — no email verification step exists. `409` if the email is taken, `400` if the name is blank, the email fails `isValidEmail`, or the password is under 8 chars. **Each signup creates an isolated tenant** — the new account starts with zero leads/campaigns/settings and can never see another account's data (see §12). |
 | `POST /api/auth/login` | `{ email, password }` → `{ user: { id, email, name }, token }`. Sets the session cookie. `token` is also returned in the body but the cookie is what auth actually relies on. |
 | `POST /api/auth/logout` | No body → `204`. Clears the cookie. |
 | `GET /api/auth/me` | Auth required → `{ user }`. Use on app load to check session validity. |
 | `POST /api/auth/password-reset/request` | `{ email }` → `{ message, ...devFields }`. In `DEBUG=true`, the reset token is included in the response (and always logged) instead of relying solely on the real email — don't rely on that shape with `DEBUG=false`. |
 | `POST /api/auth/password-reset/confirm` | `{ token, newPassword }` (min 8 chars) → `204`. |
 
-No self-serve signup exists (single account-owner app, per SRS).
+Self-serve signup exists as of the multi-tenancy change — this is no longer a single-account-owner app (it supersedes that part of the SRS). `npm run db:seed` still works for creating the original owner but is no longer the only way in.
 
 ## 3. Response conventions
 
@@ -183,3 +184,15 @@ There's no seed/fake-data mode anymore — every provider integration (Apollo, H
 |---|---|
 | `GET /api/debug/status` | Auth required → `{ enabled: boolean }`. `Topbar`'s Debug button only renders when this is `true` (`useDebugMode` hook). |
 | `GET /api/debug/log` | Auth required → `DebugLogEntry[]`, newest last: `{ id, timestamp, level: "warn"\|"error", message, meta? }`. An in-memory ring buffer (last 200 `logger.warn`/`.error` calls process-wide — rate-limit hits, provider failures, etc.) — cleared on server restart, always `[]` when `DEBUG=false`. Backs `DebugPage`, polled every 5s. |
+
+## 12. Multi-tenancy
+
+Every account is a fully isolated tenant. All nine data tables (`leads`, `campaigns`, `campaign_sends`, `email_drafts`, `lead_import_jobs`, `notifications`, `api_key_credentials`, `notification_settings`, `sender_identity`) carry a `userId` with an `ON DELETE CASCADE` FK to `users` and an index, added by the `AddUserScoping` migration.
+
+What this means for the frontend: **nothing changes in the request/response shapes** — no endpoint takes a `userId`, because it's always derived server-side from the session cookie (`req.user!.id`). The isolation is invisible from the client. Two things worth knowing:
+
+- **Another account's ids behave as if they don't exist.** Fetching, patching, or generating against an id you don't own returns `404`, not `403` — so the UI's existing not-found handling already covers it. `POST /api/leads/bulk-delete` is the one exception: it returns `204` regardless, having deleted nothing, since a bulk delete is idempotent.
+- **`DELETE /api/settings/data` only wipes the caller's rows**, not the whole database.
+- **Deduplication is per-account**: lead search and CSV import only compare against *your* leads, so two accounts sourcing the same company each get their own copy instead of the second seeing it as a duplicate.
+
+Verified end-to-end with two live accounts: each saw only its own leads/campaigns/industries/analytics/notifications, and every direct attempt by one account to read, mutate, delete, or reassign the other's records was refused with the other account's data left intact.

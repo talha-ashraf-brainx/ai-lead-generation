@@ -1,10 +1,32 @@
 import { Router } from "express";
 import { clearAuthCookie, setAuthCookie } from "../lib/authCookie.js";
+import { isValidEmail } from "../lib/validation.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/requireAuth.js";
-import { confirmPasswordReset, getUserById, login, requestPasswordReset } from "../services/authService.js";
+import { confirmPasswordReset, getUserById, login, requestPasswordReset, signup } from "../services/authService.js";
 
 export const authRouter = Router();
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+authRouter.post("/signup", async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body ?? {};
+    if (typeof name !== "string" || !name.trim()) throw new ApiError(400, "Name is required");
+    if (typeof email !== "string" || !isValidEmail(email)) {
+      throw new ApiError(400, "A valid email address is required");
+    }
+    if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
+      throw new ApiError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    }
+
+    const { token, user } = await signup({ name, email, password });
+    setAuthCookie(res, token);
+    res.status(201).json({ user, token });
+  } catch (err) {
+    next(err);
+  }
+});
 
 authRouter.post("/login", async (req, res, next) => {
   try {

@@ -20,6 +20,40 @@ function toPublicUser(user: User): PublicUser {
   return { id: user.id, email: user.email, name: user.name };
 }
 
+export interface SignupInput {
+  name: string;
+  email: string;
+  password: string;
+}
+
+// Self-serve signup. Each account is a fully isolated tenant — every data table carries
+// a userId (see the AddUserScoping migration), so a new account starts empty rather than
+// inheriting anyone else's leads or settings. No email verification by design for now.
+export async function signup(input: SignupInput): Promise<{ token: string; user: PublicUser }> {
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+
+  if (await users().findOne({ where: { email } })) {
+    throw new ApiError(409, "An account with that email already exists");
+  }
+
+  const passwordHash = await hashPassword(input.password);
+
+  let user: User;
+  try {
+    user = await users().save(users().create({ email, passwordHash, name: name || null }));
+  } catch (err) {
+    // Unique violation — the findOne above lost a race with a concurrent signup.
+    if ((err as { code?: string }).code === "23505") {
+      throw new ApiError(409, "An account with that email already exists");
+    }
+    throw err;
+  }
+
+  const token = signAuthToken({ sub: user.id, email: user.email });
+  return { token, user: toPublicUser(user) };
+}
+
 export async function login(email: string, password: string): Promise<{ token: string; user: PublicUser }> {
   const user = await users().findOne({ where: { email: email.toLowerCase() } });
 

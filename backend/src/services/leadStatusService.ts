@@ -11,8 +11,8 @@ function leads() {
 // Manual override — unlike the automatic open/reply tracking, this sets the status
 // directly (no forward-only guard) since it's a human decision (e.g. marking a lead
 // "converted" after a call, which has no automated signal per SRS scope).
-export async function setLeadStatus(leadId: string, status: LeadStatus): Promise<Lead> {
-  const lead = await leads().findOne({ where: { id: leadId } });
+export async function setLeadStatus(leadId: string, status: LeadStatus, userId: string): Promise<Lead> {
+  const lead = await leads().findOne({ where: { id: leadId, userId } });
   if (!lead) throw new ApiError(404, "Lead not found");
 
   const wasConverted = lead.status === "converted";

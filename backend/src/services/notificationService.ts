@@ -17,23 +17,26 @@ function settingsRepo() {
   return AppDataSource.getRepository(NotificationSettings);
 }
 
-async function getOrCreateSettings(): Promise<NotificationSettings> {
+async function getOrCreateSettings(userId: string): Promise<NotificationSettings> {
   const repo = settingsRepo();
-  const [existing] = await repo.find({ take: 1 });
+  const existing = await repo.findOne({ where: { userId } });
   if (existing) return existing;
-  return repo.save(repo.create({}));
+  return repo.save(repo.create({ userId }));
 }
 
-export async function getNotificationSettings(): Promise<NotificationSettings> {
-  return getOrCreateSettings();
+export async function getNotificationSettings(userId: string): Promise<NotificationSettings> {
+  return getOrCreateSettings(userId);
 }
 
-export async function saveNotificationSettings(input: {
-  slackEnabled: boolean;
-  slackWebhookUrl: string;
-  emailAlertsEnabled: boolean;
-}): Promise<NotificationSettings> {
-  const settings = await getOrCreateSettings();
+export async function saveNotificationSettings(
+  input: {
+    slackEnabled: boolean;
+    slackWebhookUrl: string;
+    emailAlertsEnabled: boolean;
+  },
+  userId: string,
+): Promise<NotificationSettings> {
+  const settings = await getOrCreateSettings(userId);
   settings.slackEnabled = input.slackEnabled;
   settings.slackWebhookUrl = input.slackWebhookUrl || null;
   settings.emailAlertsEnabled = input.emailAlertsEnabled;
@@ -54,31 +57,36 @@ export async function testSlackWebhook(url: string): Promise<{ success: boolean;
   }
 }
 
-export async function listNotifications(): Promise<AppNotification[]> {
-  return notifications().find({ order: { createdAt: "DESC" } });
+export async function listNotifications(userId: string): Promise<AppNotification[]> {
+  return notifications().find({ where: { userId }, order: { createdAt: "DESC" } });
 }
 
-export async function markNotificationRead(id: string): Promise<AppNotification> {
+export async function markNotificationRead(id: string, userId: string): Promise<AppNotification> {
   const repo = notifications();
-  const notification = await repo.findOne({ where: { id } });
+  const notification = await repo.findOne({ where: { id, userId } });
   if (!notification) throw new ApiError(404, "Notification not found");
 
   notification.read = true;
   return repo.save(notification);
 }
 
-export async function markAllNotificationsRead(): Promise<void> {
-  await notifications().update({ read: false }, { read: true });
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  await notifications().update({ userId, read: false }, { read: true });
 }
 
-export async function clearNotifications(): Promise<void> {
-  await notifications().clear();
+export async function clearNotifications(userId: string): Promise<void> {
+  await notifications().delete({ userId });
 }
 
 // Fire-and-forget — a Slack/email failure must never break the flow that triggered
 // the notification (reply detection, a manual conversion, a follow-up send).
-async function dispatchExternalAlerts(kind: "reply" | "conversion", title: string, detail: string): Promise<void> {
-  const settings = await getOrCreateSettings();
+async function dispatchExternalAlerts(
+  kind: "reply" | "conversion",
+  title: string,
+  detail: string,
+  userId: string,
+): Promise<void> {
+  const settings = await getOrCreateSettings(userId);
 
   if (settings.slackEnabled && settings.slackWebhookUrl) {
     try {
@@ -104,9 +112,9 @@ export async function notifyReply(lead: Lead): Promise<void> {
   const detail = `${lead.contactName} at ${lead.company} replied to your outreach${lead.campaignName ? ` (${lead.campaignName})` : ""}.`;
 
   await notifications().save(
-    notifications().create({ kind: "reply", title, detail, leadId: lead.id, campaignId: lead.campaignId }),
+    notifications().create({ userId: lead.userId, kind: "reply", title, detail, leadId: lead.id, campaignId: lead.campaignId }),
   );
-  void dispatchExternalAlerts("reply", title, detail);
+  void dispatchExternalAlerts("reply", title, detail, lead.userId);
 }
 
 export async function notifyConversion(lead: Lead): Promise<void> {
@@ -114,9 +122,9 @@ export async function notifyConversion(lead: Lead): Promise<void> {
   const detail = `${lead.company} was marked as converted${lead.campaignName ? ` in ${lead.campaignName}` : ""}.`;
 
   await notifications().save(
-    notifications().create({ kind: "conversion", title, detail, leadId: lead.id, campaignId: lead.campaignId }),
+    notifications().create({ userId: lead.userId, kind: "conversion", title, detail, leadId: lead.id, campaignId: lead.campaignId }),
   );
-  void dispatchExternalAlerts("conversion", title, detail);
+  void dispatchExternalAlerts("conversion", title, detail, lead.userId);
 }
 
 // No Slack/email dispatch here, deliberately — a routine automated follow-up send
@@ -127,6 +135,6 @@ export async function notifyFollowUp(lead: Lead, stage: "day3" | "day7"): Promis
   const detail = `${dayLabel} follow-up sent to ${lead.contactName} at ${lead.company}${lead.campaignName ? ` (${lead.campaignName})` : ""}.`;
 
   await notifications().save(
-    notifications().create({ kind: "follow_up", title, detail, leadId: lead.id, campaignId: lead.campaignId }),
+    notifications().create({ userId: lead.userId, kind: "follow_up", title, detail, leadId: lead.id, campaignId: lead.campaignId }),
   );
 }

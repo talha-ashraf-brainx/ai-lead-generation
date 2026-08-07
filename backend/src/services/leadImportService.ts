@@ -17,17 +17,19 @@ export function previewCsv(text: string): CsvPreview {
   return parseLeadsCsv(text);
 }
 
-export async function importCsvRows(rows: CsvPreviewRow[]): Promise<ImportSummary> {
+export async function importCsvRows(rows: CsvPreviewRow[], userId: string): Promise<ImportSummary> {
   const errorDetails = rows.filter((row) => !row.isValid).map((row) => ({ row: row.rowNumber, reason: row.issues.join(", ") }));
 
   const validRows = rows.filter((row) => row.isValid);
   const candidateEmails = [...new Set(validRows.map((row) => row.email.toLowerCase()))];
 
-  // BR-1: a lead is a duplicate if its email matches an existing lead's, case-insensitively.
+  // BR-1: a lead is a duplicate if its email matches an existing lead's, case-insensitively
+  // — scoped to this account, so one user's leads never shadow another's import.
   const existing = candidateEmails.length
     ? await leads()
         .createQueryBuilder("lead")
-        .where("LOWER(lead.email) IN (:...emails)", { emails: candidateEmails })
+        .where("lead.userId = :userId", { userId })
+        .andWhere("LOWER(lead.email) IN (:...emails)", { emails: candidateEmails })
         .getMany()
     : [];
   const existingEmails = new Set(existing.map((lead) => lead.email?.toLowerCase()).filter(Boolean));
@@ -45,6 +47,7 @@ export async function importCsvRows(rows: CsvPreviewRow[]): Promise<ImportSummar
 
     newLeads.push(
       leads().create({
+        userId,
         company: row.company,
         contactName: row.contactName || "Unknown contact",
         email: row.email,

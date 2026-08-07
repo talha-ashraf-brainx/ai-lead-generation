@@ -6,6 +6,9 @@ export class Campaign {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  @Column({ type: "uuid" })
+  userId!: string;
+
   @Column({ type: "varchar" })
   name!: string;
 

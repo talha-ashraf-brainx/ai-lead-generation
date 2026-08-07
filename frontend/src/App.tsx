@@ -5,6 +5,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import { AppLayout } from './components/layout/AppLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { LoginPage } from './pages/LoginPage'
+import { SignupPage } from './pages/SignupPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { LeadsPage } from './pages/leads/LeadsPage'
@@ -26,6 +27,7 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route
                 element={

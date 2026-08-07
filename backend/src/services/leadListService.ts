@@ -8,6 +8,7 @@ import { checkCampaignEligibility, queueInitialSendForLead } from "./campaignSer
 import type { LeadStatus } from "../types/lead.js";
 
 export interface ListLeadsParams {
+  userId: string;
   page: number;
   pageSize: number;
   search?: string;
@@ -32,7 +33,7 @@ function campaigns() {
 }
 
 export async function listLeads(params: ListLeadsParams): Promise<ListLeadsResult> {
-  const qb = leads().createQueryBuilder("lead");
+  const qb = leads().createQueryBuilder("lead").where("lead.userId = :userId", { userId: params.userId });
 
   const search = params.search?.trim();
   if (search) {
@@ -66,31 +67,36 @@ export async function listLeads(params: ListLeadsParams): Promise<ListLeadsResul
   return { rows, total };
 }
 
-export async function getLead(id: string): Promise<Lead> {
-  const lead = await leads().findOne({ where: { id } });
+export async function getLead(id: string, userId: string): Promise<Lead> {
+  const lead = await leads().findOne({ where: { id, userId } });
   if (!lead) throw new ApiError(404, "Lead not found");
   return lead;
 }
 
-export async function listIndustries(): Promise<string[]> {
+export async function listIndustries(userId: string): Promise<string[]> {
   const rows = await leads()
     .createQueryBuilder("lead")
     .select("DISTINCT lead.industry", "industry")
+    .where("lead.userId = :userId", { userId })
     .orderBy("lead.industry", "ASC")
     .getRawMany<{ industry: string }>();
   return rows.map((row) => row.industry);
 }
 
-export async function bulkDeleteLeads(ids: string[]): Promise<void> {
+export async function bulkDeleteLeads(ids: string[], userId: string): Promise<void> {
   if (!ids.length) return;
-  await leads().delete(ids);
+  await leads().delete({ id: In(ids), userId });
 }
 
 // Debug-mode-only convenience (see routes/leads.ts's env.debug gate) — lets a lead's
 // email/website be patched in by hand when a provider fails to fill them in, without
 // needing to fake a whole enrichment result.
-export async function updateLeadDebugFields(id: string, input: { email?: string | null; website?: string }): Promise<Lead> {
-  const lead = await getLead(id);
+export async function updateLeadDebugFields(
+  id: string,
+  userId: string,
+  input: { email?: string | null; website?: string },
+): Promise<Lead> {
+  const lead = await getLead(id, userId);
   if (input.email !== undefined) lead.email = input.email === "" ? null : input.email;
   if (input.website !== undefined) lead.website = input.website;
   return leads().save(lead);
@@ -108,13 +114,17 @@ export interface BulkAddToCampaignResult {
 // Leads without a real email or an approved draft are never tagged with the campaign
 // at all — not just left to fail at send time — so "who's in this campaign" stays an
 // accurate answer to "who's actually reachable".
-export async function bulkAddLeadsToCampaign(ids: string[], campaignId: string): Promise<BulkAddToCampaignResult> {
-  const campaign = await campaigns().findOne({ where: { id: campaignId } });
+export async function bulkAddLeadsToCampaign(
+  ids: string[],
+  campaignId: string,
+  userId: string,
+): Promise<BulkAddToCampaignResult> {
+  const campaign = await campaigns().findOne({ where: { id: campaignId, userId } });
   if (!campaign) throw new ApiError(404, "Campaign not found");
   if (!ids.length) return { added: [], skipped: [] };
 
-  const targetLeads = await leads().find({ where: { id: In(ids) } });
-  const leadDrafts = await drafts().find({ where: { leadId: In(targetLeads.map((lead) => lead.id)) } });
+  const targetLeads = await leads().find({ where: { id: In(ids), userId } });
+  const leadDrafts = await drafts().find({ where: { leadId: In(targetLeads.map((lead) => lead.id)), userId } });
   const draftByLeadId = new Map(leadDrafts.map((draft) => [draft.leadId, draft]));
 
   const eligible: Lead[] = [];

@@ -6,6 +6,9 @@ export class Lead {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  @Column({ type: "uuid" })
+  userId!: string;
+
   @Column({ type: "varchar" })
   company!: string;
 

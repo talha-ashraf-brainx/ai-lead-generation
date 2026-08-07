@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { User } from '../types/auth'
-import { fetchCurrentUser, login as apiLogin, logout as apiLogout } from '../lib/api/auth'
+import { fetchCurrentUser, login as apiLogin, logout as apiLogout, signup as apiSignup } from '../lib/api/auth'
 import { AuthContext, type AuthContextValue } from './auth-context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -19,6 +19,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(loggedInUser)
   }
 
+  async function signup(name: string, email: string, password: string) {
+    const newUser = await apiSignup(name, email, password)
+    setUser(newUser)
+  }
+
   async function logout() {
     try {
       await apiLogout()
@@ -28,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, isInitializing, login, logout }),
+    () => ({ user, isAuthenticated: user !== null, isInitializing, login, signup, logout }),
     [user, isInitializing],
   )
 

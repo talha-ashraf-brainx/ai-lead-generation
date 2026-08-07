@@ -36,9 +36,9 @@ async function enrichOnce(lead: Lead): Promise<EnrichmentResult> {
   }
 }
 
-export async function enrichLead(leadId: string): Promise<Lead> {
+export async function enrichLead(leadId: string, userId: string): Promise<Lead> {
   const repo = leads();
-  const lead = await repo.findOne({ where: { id: leadId } });
+  const lead = await repo.findOne({ where: { id: leadId, userId } });
   if (!lead) throw new ApiError(404, "Lead not found");
 
   let lastError: unknown;
@@ -68,8 +68,8 @@ export async function enrichLead(leadId: string): Promise<Lead> {
 
 // Fire-and-forget trigger for freshly-created leads — same in-process pattern as
 // leadSearchService's search job, no queue needed for a single-user app yet.
-export function enqueueEnrichment(leadId: string): void {
-  void enrichLead(leadId).catch((err) => {
+export function enqueueEnrichment(leadId: string, userId: string): void {
+  void enrichLead(leadId, userId).catch((err) => {
     logger.error("Unhandled enrichment job error", { leadId, error: err instanceof Error ? err.message : err });
   });
 }

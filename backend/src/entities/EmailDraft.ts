@@ -6,6 +6,9 @@ export class EmailDraft {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
+  @Column({ type: "uuid" })
+  userId!: string;
+
   @Column({ type: "uuid", unique: true })
   leadId!: string;
 
